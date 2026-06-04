@@ -1,10 +1,12 @@
 package dev.simd.ledgeflow.controller;
 
 import dev.simd.ledgeflow.model.Account;
+import dev.simd.ledgeflow.model.Transaction;
 import dev.simd.ledgeflow.service.AccountService;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -26,5 +28,10 @@ public class AccountController {
     @GetMapping("/{id}")
     public Account getAccount(@PathVariable UUID id) {
         return accountService.getAccount(id);
+    }
+
+    @GetMapping("/{id}/history")
+    public List<Transaction> getAccountHistory(@PathVariable UUID id) {
+        return accountService.getAccountHistory(id);
     }
 }

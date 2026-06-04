@@ -22,4 +22,9 @@ public class AccountController {
     public Account createAccount(@RequestParam UUID ownerId, @RequestParam String currency) {
         return accountService.createAccount(ownerId, currency);
     }
+
+    @GetMapping("/{id}")
+    public Account getAccount(@PathVariable UUID id) {
+        return accountService.getAccount(id);
+    }
 }

@@ -6,6 +6,7 @@ import dev.simd.ledgeflow.service.AccountService;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
@@ -33,5 +34,13 @@ public class AccountController {
     @GetMapping("/{id}/history")
     public List<Transaction> getAccountHistory(@PathVariable UUID id) {
         return accountService.getAccountHistory(id);
+    }
+
+    @PostMapping("/{id}/deposit")
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    public void deposit(@PathVariable UUID id,
+                        @RequestParam BigDecimal amount,
+                        @RequestParam String currency) {
+        accountService.deposit(id, amount, currency);
     }
 }

@@ -13,6 +13,7 @@ public class AccountEvent {
 
     private String type;
     private UUID accountId;
+    private UUID toAccountId;
     private BigDecimal amount;
     private String currency;
     private UUID correlationId;

@@ -45,7 +45,7 @@ public class AccountService {
         }
         getAccount(accountId);
         AccountEvent event = new AccountEvent(
-                "MoneyDeposited", accountId, amount, currency,
+                "MoneyDeposited", accountId, null, amount, currency,
                 UUID.randomUUID(), LocalDateTime.now().toString()
         );
         kafkaEventPublisher.publish(accountId.toString(), event);
@@ -60,7 +60,7 @@ public class AccountService {
             throw new RuntimeException("Insufficient funds");
         }
         AccountEvent event = new AccountEvent(
-                "MoneyWithdrawn", accountId, amount, currency,
+                "MoneyWithdrawn", accountId, null, amount, currency,
                 UUID.randomUUID(), LocalDateTime.now().toString()
         );
         kafkaEventPublisher.publish(accountId.toString(), event);

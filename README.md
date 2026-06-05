@@ -13,6 +13,13 @@ read model, never the source of truth.
 - OpenTelemetry · Micrometer · Prometheus · Grafana
 - Testcontainers · Docker Compose
 
+## What's built so far
+
+- Account creation and balance queries via REST API
+- JWT authentication — register, login, secured endpoints
+- Deposit events published to Kafka
+- PostgreSQL schema managed by Flyway migrations
+
 ## Status
 
-Work in progress.
+Work in progress — Kafka event consumer, Kafka Streams topology, and observability coming next.

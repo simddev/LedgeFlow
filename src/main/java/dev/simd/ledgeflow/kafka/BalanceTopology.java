@@ -78,6 +78,25 @@ public class BalanceTopology {
                         .withValueSerde(Serdes.Long()));
     }
 
+    @Bean
+    public KStream<String, String> alertsStream(StreamsBuilder builder) {
+        KStream<String, String> events = builder.stream(KafkaTopicConfig.ACCOUNT_EVENTS);
+        KStream<String, String> alerts = events.filter((key, value) -> isLargeTransaction(value));
+        alerts.to(KafkaTopicConfig.ACCOUNT_ALERTS);
+        return alerts;
+    }
+
+    private boolean isLargeTransaction(String value) {
+        if (value == null) return false;
+        try {
+            AccountEvent event = objectMapper.readValue(value, AccountEvent.class);
+            return event.getAmount() != null
+                    && event.getAmount().compareTo(new BigDecimal("10000")) > 0;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     private boolean isBalanceEvent(String value) {
         if (value == null) return false;
         return value.contains("MoneyDeposited")

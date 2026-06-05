@@ -10,6 +10,8 @@ spring:
     bootstrap-servers: ${spring.embedded.kafka.brokers}
     admin:
       fail-fast: false
+    consumer:
+      group-id: ledgeflow-test
 
 security:
   jwt:

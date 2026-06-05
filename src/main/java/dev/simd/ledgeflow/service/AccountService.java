@@ -66,6 +66,26 @@ public class AccountService {
         kafkaEventPublisher.publish(accountId.toString(), event);
     }
 
+    public void transfer(UUID fromAccountId, UUID toAccountId, BigDecimal amount, String currency) {
+        if (amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new RuntimeException("Amount must be positive");
+        }
+        if (fromAccountId.equals(toAccountId)) {
+            throw new RuntimeException("Source and destination accounts must differ");
+        }
+        Account source = getAccount(fromAccountId);
+        getAccount(toAccountId);
+        if (source.getBalance().compareTo(amount) < 0) {
+            throw new RuntimeException("Insufficient funds");
+        }
+        UUID correlationId = UUID.randomUUID();
+        String timestamp = LocalDateTime.now().toString();
+        kafkaEventPublisher.publish(fromAccountId.toString(),
+                new AccountEvent("TransferInitiated", fromAccountId, toAccountId, amount, currency, correlationId, timestamp));
+        kafkaEventPublisher.publish(fromAccountId.toString(),
+                new AccountEvent("TransferCompleted", fromAccountId, toAccountId, amount, currency, correlationId, timestamp));
+    }
+
     public Account getAccount(UUID id) {
         return accountRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Account not found: " + id));

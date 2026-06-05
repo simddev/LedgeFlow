@@ -51,6 +51,21 @@ public class AccountService {
         kafkaEventPublisher.publish(accountId.toString(), event);
     }
 
+    public void withdraw(UUID accountId, BigDecimal amount, String currency) {
+        if (amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new RuntimeException("Amount must be positive");
+        }
+        Account account = getAccount(accountId);
+        if (account.getBalance().compareTo(amount) < 0) {
+            throw new RuntimeException("Insufficient funds");
+        }
+        AccountEvent event = new AccountEvent(
+                "MoneyWithdrawn", accountId, amount, currency,
+                UUID.randomUUID(), LocalDateTime.now().toString()
+        );
+        kafkaEventPublisher.publish(accountId.toString(), event);
+    }
+
     public Account getAccount(UUID id) {
         return accountRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Account not found: " + id));

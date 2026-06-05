@@ -43,4 +43,12 @@ public class AccountController {
                         @RequestParam String currency) {
         accountService.deposit(id, amount, currency);
     }
+
+    @PostMapping("/{id}/withdraw")
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    public void withdraw(@PathVariable UUID id,
+                         @RequestParam BigDecimal amount,
+                         @RequestParam String currency) {
+        accountService.withdraw(id, amount, currency);
+    }
 }

@@ -1,6 +1,8 @@
 # LedgeFlow
 
-Event-sourced financial ledger implementing CQRS with Kafka Streams.
+Event-sourced financial ledger implementing CQRS with Kafka Streams. Account state is
+derived entirely from an immutable Kafka event log — PostgreSQL serves as a rebuildable
+read model, never the source of truth.
 
 ## Stack
 

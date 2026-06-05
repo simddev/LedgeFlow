@@ -1,5 +1,7 @@
 package dev.simd.ledgeflow.service;
 
+import dev.simd.ledgeflow.event.AccountEvent;
+import dev.simd.ledgeflow.kafka.KafkaEventPublisher;
 import dev.simd.ledgeflow.model.Account;
 import dev.simd.ledgeflow.model.Transaction;
 import dev.simd.ledgeflow.repository.AccountRepository;
@@ -16,10 +18,14 @@ public class AccountService {
 
     private final AccountRepository accountRepository;
     private final TransactionRepository transactionRepository;
+    private final KafkaEventPublisher kafkaEventPublisher;
 
-    public AccountService(AccountRepository accountRepository, TransactionRepository transactionRepository) {
+    public AccountService(AccountRepository accountRepository,
+                          TransactionRepository transactionRepository,
+                          KafkaEventPublisher kafkaEventPublisher) {
         this.accountRepository = accountRepository;
         this.transactionRepository = transactionRepository;
+        this.kafkaEventPublisher = kafkaEventPublisher;
     }
 
     public Account createAccount(UUID ownerId, String currency) {
@@ -31,6 +37,18 @@ public class AccountService {
         account.setCreatedAt(LocalDateTime.now());
         account.setUpdatedAt(LocalDateTime.now());
         return accountRepository.save(account);
+    }
+
+    public void deposit(UUID accountId, BigDecimal amount, String currency) {
+        if (amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new RuntimeException("Amount must be positive");
+        }
+        getAccount(accountId);
+        AccountEvent event = new AccountEvent(
+                "MoneyDeposited", accountId, amount, currency,
+                UUID.randomUUID(), LocalDateTime.now().toString()
+        );
+        kafkaEventPublisher.publish(accountId.toString(), event);
     }
 
     public Account getAccount(UUID id) {

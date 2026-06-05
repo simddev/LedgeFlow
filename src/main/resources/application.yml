@@ -17,6 +17,17 @@ spring:
     enabled: true
     baseline-on-migrate: true
 
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+    consumer:
+      group-id: ledgeflow
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+
 security:
   jwt:
     secret: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970

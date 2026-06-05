@@ -10,7 +10,12 @@ import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.Materialized;
+import org.apache.kafka.streams.kstream.TimeWindows;
+import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.state.KeyValueStore;
+import org.apache.kafka.streams.state.WindowStore;
+
+import java.time.Duration;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -59,6 +64,18 @@ public class BalanceTopology {
                                 .withKeySerde(Serdes.String())
                                 .withValueSerde(Serdes.String())
                 );
+    }
+
+    @Bean
+    public KTable<Windowed<String>, Long> velocityTable(StreamsBuilder builder) {
+        KStream<String, String> events = builder.stream(KafkaTopicConfig.ACCOUNT_EVENTS);
+
+        return events
+                .groupByKey()
+                .windowedBy(TimeWindows.ofSizeWithNoGrace(Duration.ofMinutes(5)))
+                .count(Materialized.<String, Long, WindowStore<Bytes, byte[]>>as("velocity-store")
+                        .withKeySerde(Serdes.String())
+                        .withValueSerde(Serdes.Long()));
     }
 
     private boolean isBalanceEvent(String value) {

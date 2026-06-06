@@ -2,6 +2,7 @@ package dev.simd.ledgeflow.service;
 
 import dev.simd.ledgeflow.event.AccountEvent;
 import dev.simd.ledgeflow.kafka.KafkaEventPublisher;
+import dev.simd.ledgeflow.metrics.LedgeFlowMetrics;
 import dev.simd.ledgeflow.model.Account;
 import dev.simd.ledgeflow.model.Transaction;
 import dev.simd.ledgeflow.repository.AccountRepository;
@@ -19,13 +20,16 @@ public class AccountService {
     private final AccountRepository accountRepository;
     private final TransactionRepository transactionRepository;
     private final KafkaEventPublisher kafkaEventPublisher;
+    private final LedgeFlowMetrics metrics;
 
     public AccountService(AccountRepository accountRepository,
                           TransactionRepository transactionRepository,
-                          KafkaEventPublisher kafkaEventPublisher) {
+                          KafkaEventPublisher kafkaEventPublisher,
+                          LedgeFlowMetrics metrics) {
         this.accountRepository = accountRepository;
         this.transactionRepository = transactionRepository;
         this.kafkaEventPublisher = kafkaEventPublisher;
+        this.metrics = metrics;
     }
 
     public Account createAccount(UUID ownerId, String currency) {
@@ -49,6 +53,7 @@ public class AccountService {
                 UUID.randomUUID(), LocalDateTime.now().toString()
         );
         kafkaEventPublisher.publish(accountId.toString(), event);
+        metrics.incrementDeposit(amount);
     }
 
     public void withdraw(UUID accountId, BigDecimal amount, String currency) {
@@ -64,6 +69,7 @@ public class AccountService {
                 UUID.randomUUID(), LocalDateTime.now().toString()
         );
         kafkaEventPublisher.publish(accountId.toString(), event);
+        metrics.incrementWithdrawal(amount);
     }
 
     public void transfer(UUID fromAccountId, UUID toAccountId, BigDecimal amount, String currency) {
@@ -84,6 +90,7 @@ public class AccountService {
                 new AccountEvent("TransferInitiated", fromAccountId, toAccountId, amount, currency, correlationId, timestamp));
         kafkaEventPublisher.publish(fromAccountId.toString(),
                 new AccountEvent("TransferCompleted", fromAccountId, toAccountId, amount, currency, correlationId, timestamp));
+        metrics.incrementTransfer(amount);
     }
 
     public Account getAccount(UUID id) {

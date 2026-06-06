@@ -81,4 +81,18 @@ class DepositIntegrationTest {
             assertThat(updated.getBalance()).isEqualByComparingTo("100.00");
         });
     }
+
+    @Test
+    void withdrawal_updatesBalance_inReadModel() {
+        Account account = accountService.createAccount(UUID.randomUUID(), "EUR");
+        account.setBalance(new BigDecimal("200.00"));
+        accountRepository.save(account);
+
+        accountService.withdraw(account.getId(), new BigDecimal("50.00"), "EUR");
+
+        await().atMost(15, SECONDS).untilAsserted(() -> {
+            Account updated = accountRepository.findById(account.getId()).orElseThrow();
+            assertThat(updated.getBalance()).isEqualByComparingTo("150.00");
+        });
+    }
 }

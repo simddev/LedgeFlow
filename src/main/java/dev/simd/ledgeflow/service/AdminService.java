@@ -2,6 +2,7 @@ package dev.simd.ledgeflow.service;
 
 import dev.simd.ledgeflow.config.KafkaTopicConfig;
 import dev.simd.ledgeflow.kafka.EventConsumer;
+import dev.simd.ledgeflow.metrics.LedgeFlowMetrics;
 import dev.simd.ledgeflow.repository.AccountRepository;
 import dev.simd.ledgeflow.repository.ProcessedEventRepository;
 import dev.simd.ledgeflow.repository.TransactionRepository;
@@ -26,6 +27,7 @@ public class AdminService {
     private final TransactionRepository transactionRepository;
     private final ProcessedEventRepository processedEventRepository;
     private final EventConsumer eventConsumer;
+    private final LedgeFlowMetrics metrics;
 
     @Value("${spring.kafka.bootstrap-servers}")
     private String bootstrapServers;
@@ -33,14 +35,20 @@ public class AdminService {
     public AdminService(AccountRepository accountRepository,
                         TransactionRepository transactionRepository,
                         ProcessedEventRepository processedEventRepository,
-                        EventConsumer eventConsumer) {
+                        EventConsumer eventConsumer,
+                        LedgeFlowMetrics metrics) {
         this.accountRepository = accountRepository;
         this.transactionRepository = transactionRepository;
         this.processedEventRepository = processedEventRepository;
         this.eventConsumer = eventConsumer;
+        this.metrics = metrics;
     }
 
     public void rebuild() {
+        metrics.getRebuildTimer().record(() -> doRebuild());
+    }
+
+    private void doRebuild() {
         transactionRepository.deleteAll();
         processedEventRepository.deleteAll();
         accountRepository.deleteAll();

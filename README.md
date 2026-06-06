@@ -7,19 +7,23 @@ read model, never the source of truth.
 ## Stack
 
 - Java 21 · Spring Boot 4
-- Apache Kafka · Kafka Streams · Confluent Schema Registry · Avro
+- Apache Kafka · Kafka Streams
 - PostgreSQL 16 · Flyway
 - Spring Security · JWT
-- OpenTelemetry · Micrometer · Prometheus · Grafana
+- Micrometer · Prometheus
 - Testcontainers · Docker Compose
 
 ## What's built so far
 
-- Account creation and balance queries via REST API
-- JWT authentication — register, login, secured endpoints
-- Deposit events published to Kafka
-- PostgreSQL schema managed by Flyway migrations
+- REST API — accounts, deposit, withdrawal, transfer
+- JWT authentication — register, login, role-based access
+- Kafka producer — all financial operations publish typed events to `account.events`
+- Event consumer — reads Kafka, updates PostgreSQL read model with idempotency
+- Kafka Streams topology — KTable balance aggregation, windowed velocity detection, anomaly routing to `account.alerts`
+- Admin rebuild endpoint — deletes the entire read model and replays Kafka from offset 0
+- Micrometer metrics exposed at `/actuator/prometheus`
+- Flyway versioned migrations — four tables managed
 
 ## Status
 
-Work in progress — Kafka event consumer, Kafka Streams topology, and observability coming next.
+Work in progress — OpenTelemetry tracing, Testcontainers integration tests, Docker Compose, and Grafana dashboard coming next.

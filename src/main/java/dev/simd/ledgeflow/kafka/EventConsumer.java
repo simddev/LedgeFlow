@@ -50,16 +50,19 @@ public class EventConsumer {
             return;
         }
 
-        switch (event.getType()) {
-            case "MoneyDeposited"   -> processDeposit(event);
-            case "MoneyWithdrawn"   -> processWithdrawal(event);
-            case "TransferCompleted" -> processTransfer(event);
-        }
+        boolean handled = switch (event.getType()) {
+            case "MoneyDeposited"    -> { processDeposit(event);    yield true; }
+            case "MoneyWithdrawn"    -> { processWithdrawal(event); yield true; }
+            case "TransferCompleted" -> { processTransfer(event);   yield true; }
+            default                  -> false;
+        };
 
-        ProcessedEvent processed = new ProcessedEvent();
-        processed.setEventId(event.getCorrelationId());
-        processed.setProcessedAt(LocalDateTime.now());
-        processedEventRepository.save(processed);
+        if (handled) {
+            ProcessedEvent processed = new ProcessedEvent();
+            processed.setEventId(event.getCorrelationId());
+            processed.setProcessedAt(LocalDateTime.now());
+            processedEventRepository.save(processed);
+        }
     }
 
     private void processDeposit(AccountEvent event) {

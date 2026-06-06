@@ -11,6 +11,7 @@ read model, never the source of truth.
 - PostgreSQL 16 · Flyway
 - Spring Security · JWT
 - Micrometer · Prometheus
+- OpenTelemetry
 - Testcontainers · Docker Compose
 
 ## What's built so far
@@ -22,8 +23,10 @@ read model, never the source of truth.
 - Kafka Streams topology — KTable balance aggregation, windowed velocity detection, anomaly routing to `account.alerts`
 - Admin rebuild endpoint — deletes the entire read model and replays Kafka from offset 0
 - Micrometer metrics exposed at `/actuator/prometheus`
+- OpenTelemetry tracing — trace sampling at 100%, propagated through Kafka headers
+- Testcontainers integration test — deposit flow verified end-to-end against real Kafka and PostgreSQL
 - Flyway versioned migrations — four tables managed
 
 ## Status
 
-Work in progress — OpenTelemetry tracing, Testcontainers integration tests, Docker Compose, and Grafana dashboard coming next.
+Work in progress — Docker Compose, Grafana dashboard, and remaining integration tests coming next.

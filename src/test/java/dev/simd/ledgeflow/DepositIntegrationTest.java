@@ -3,6 +3,10 @@ package dev.simd.ledgeflow;
 import dev.simd.ledgeflow.model.Account;
 import dev.simd.ledgeflow.repository.AccountRepository;
 import dev.simd.ledgeflow.service.AccountService;
+import org.apache.kafka.clients.admin.AdminClient;
+import org.apache.kafka.clients.admin.AdminClientConfig;
+import org.apache.kafka.clients.admin.NewTopic;
+import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -16,13 +20,16 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
 import java.math.BigDecimal;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
-@SpringBootTest(properties = "spring.flyway.enabled=true")
+@SpringBootTest
 @Testcontainers(disabledWithoutDocker = true)
 @DirtiesContext
 class DepositIntegrationTest {
@@ -41,6 +48,21 @@ class DepositIntegrationTest {
         registry.add("spring.datasource.driver-class-name", () -> "org.postgresql.Driver");
         registry.add("spring.jpa.database-platform", () -> "org.hibernate.dialect.PostgreSQLDialect");
         registry.add("spring.kafka.bootstrap-servers", kafka::getBootstrapServers);
+
+        Flyway.configure()
+                .dataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword())
+                .load()
+                .migrate();
+
+        try (AdminClient admin = AdminClient.create(
+                Map.of(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, kafka.getBootstrapServers()))) {
+            admin.createTopics(List.of(
+                    new NewTopic("account.events", 1, (short) 1),
+                    new NewTopic("account.alerts", 1, (short) 1)
+            )).all().get(10, TimeUnit.SECONDS);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to create Kafka topics", e);
+        }
     }
 
     @Autowired

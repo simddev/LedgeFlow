@@ -113,6 +113,7 @@ public class BalanceTopology {
                 || value.contains("TransferCompleted");
     }
 
+    // TransferCompleted is keyed by fromAccountId, so without fan-out the receiver's balance store entry is never touched.
     private java.util.List<KeyValue<String, String>> expandTransfer(String key, String value) {
         try {
             AccountEvent event = objectMapper.readValue(value, AccountEvent.class);

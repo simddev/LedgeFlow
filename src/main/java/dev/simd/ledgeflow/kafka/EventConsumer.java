@@ -67,6 +67,8 @@ public class EventConsumer {
     }
 
     private void createAccount(AccountEvent event) {
+        // AccountService.createAccount() already saves directly to the DB, so the event arrives after the row exists.
+        // Skip on normal delivery; on rebuild the row is gone and this insert is required.
         if (accountRepository.existsById(event.getAccountId())) {
             return;
         }

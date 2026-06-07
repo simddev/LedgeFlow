@@ -4,6 +4,8 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.kafka.annotation.EnableKafka;
 
+// @EnableKafka is explicit because KafkaConsumerConfig defines kafkaListenerContainerFactory,
+// which disables the Spring Boot 4 auto-configuration class that would otherwise register it.
 @SpringBootApplication
 @EnableKafka
 public class LedgeFlowApplication {

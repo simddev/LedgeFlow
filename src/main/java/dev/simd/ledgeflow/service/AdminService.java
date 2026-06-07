@@ -55,6 +55,7 @@ public class AdminService {
 
         Properties props = new Properties();
         props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+        // random group ID so Kafka never has a committed offset for this consumer — always reads from the seekToBeginning below
         props.put(ConsumerConfig.GROUP_ID_CONFIG, "ledgeflow-rebuild-" + UUID.randomUUID());
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());

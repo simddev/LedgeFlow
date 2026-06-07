@@ -52,7 +52,7 @@ curl -s http://localhost:8080/accounts/$ID \
 - PostgreSQL 16 · Flyway
 - Spring Security · JWT
 - Micrometer · Prometheus
-- OpenTelemetry
+- Micrometer Tracing
 - Testcontainers · Docker Compose
 
 ## What's built so far

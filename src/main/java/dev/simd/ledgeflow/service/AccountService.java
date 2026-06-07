@@ -7,6 +7,9 @@ import dev.simd.ledgeflow.model.Account;
 import dev.simd.ledgeflow.model.Transaction;
 import dev.simd.ledgeflow.repository.AccountRepository;
 import dev.simd.ledgeflow.repository.TransactionRepository;
+import dev.simd.ledgeflow.exception.AccountNotFoundException;
+import dev.simd.ledgeflow.exception.InsufficientFundsException;
+import dev.simd.ledgeflow.exception.InvalidRequestException;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -49,7 +52,7 @@ public class AccountService {
 
     public void deposit(UUID accountId, BigDecimal amount, String currency) {
         if (amount.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new RuntimeException("Amount must be positive");
+            throw new InvalidRequestException("Amount must be positive");
         }
         getAccount(accountId);
         AccountEvent event = new AccountEvent(
@@ -62,11 +65,11 @@ public class AccountService {
 
     public void withdraw(UUID accountId, BigDecimal amount, String currency) {
         if (amount.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new RuntimeException("Amount must be positive");
+            throw new InvalidRequestException("Amount must be positive");
         }
         Account account = getAccount(accountId);
         if (account.getBalance().compareTo(amount) < 0) {
-            throw new RuntimeException("Insufficient funds");
+            throw new InsufficientFundsException();
         }
         AccountEvent event = new AccountEvent(
                 "MoneyWithdrawn", accountId, null, amount, currency,
@@ -78,15 +81,15 @@ public class AccountService {
 
     public void transfer(UUID fromAccountId, UUID toAccountId, BigDecimal amount, String currency) {
         if (amount.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new RuntimeException("Amount must be positive");
+            throw new InvalidRequestException("Amount must be positive");
         }
         if (fromAccountId.equals(toAccountId)) {
-            throw new RuntimeException("Source and destination accounts must differ");
+            throw new InvalidRequestException("Source and destination accounts must differ");
         }
         Account source = getAccount(fromAccountId);
         getAccount(toAccountId);
         if (source.getBalance().compareTo(amount) < 0) {
-            throw new RuntimeException("Insufficient funds");
+            throw new InsufficientFundsException();
         }
         UUID correlationId = UUID.randomUUID();
         String timestamp = LocalDateTime.now().toString();
@@ -99,7 +102,7 @@ public class AccountService {
 
     public Account getAccount(UUID id) {
         return accountRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Account not found: " + id));
+                .orElseThrow(() -> new AccountNotFoundException(id));
     }
 
     public List<Transaction> getAccountHistory(UUID id) {

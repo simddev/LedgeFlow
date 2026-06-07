@@ -20,10 +20,12 @@ public class AccountController {
         this.accountService = accountService;
     }
 
+    record CreateAccountRequest(UUID ownerId, String currency) {}
+
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public Account createAccount(@RequestParam UUID ownerId, @RequestParam String currency) {
-        return accountService.createAccount(ownerId, currency);
+    public Account createAccount(@RequestBody CreateAccountRequest request) {
+        return accountService.createAccount(request.ownerId(), request.currency());
     }
 
     @GetMapping("/{id}")
@@ -36,19 +38,17 @@ public class AccountController {
         return accountService.getAccountHistory(id);
     }
 
+    record AmountRequest(BigDecimal amount, String currency) {}
+
     @PostMapping("/{id}/deposit")
     @ResponseStatus(HttpStatus.ACCEPTED)
-    public void deposit(@PathVariable UUID id,
-                        @RequestParam BigDecimal amount,
-                        @RequestParam String currency) {
-        accountService.deposit(id, amount, currency);
+    public void deposit(@PathVariable UUID id, @RequestBody AmountRequest request) {
+        accountService.deposit(id, request.amount(), request.currency());
     }
 
     @PostMapping("/{id}/withdraw")
     @ResponseStatus(HttpStatus.ACCEPTED)
-    public void withdraw(@PathVariable UUID id,
-                         @RequestParam BigDecimal amount,
-                         @RequestParam String currency) {
-        accountService.withdraw(id, amount, currency);
+    public void withdraw(@PathVariable UUID id, @RequestBody AmountRequest request) {
+        accountService.withdraw(id, request.amount(), request.currency());
     }
 }

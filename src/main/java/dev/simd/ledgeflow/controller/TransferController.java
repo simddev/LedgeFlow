@@ -17,12 +17,11 @@ public class TransferController {
         this.accountService = accountService;
     }
 
+    record TransferRequest(UUID fromAccountId, UUID toAccountId, BigDecimal amount, String currency) {}
+
     @PostMapping
     @ResponseStatus(HttpStatus.ACCEPTED)
-    public void transfer(@RequestParam UUID fromAccountId,
-                         @RequestParam UUID toAccountId,
-                         @RequestParam BigDecimal amount,
-                         @RequestParam String currency) {
-        accountService.transfer(fromAccountId, toAccountId, amount, currency);
+    public void transfer(@RequestBody TransferRequest request) {
+        accountService.transfer(request.fromAccountId(), request.toAccountId(), request.amount(), request.currency());
     }
 }

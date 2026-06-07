@@ -43,6 +43,7 @@ services:
     ports:
       - "8080:8080"
     environment:
+      JWT_SECRET: ${JWT_SECRET:-404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/ledgeflow
       SPRING_DATASOURCE_USERNAME: ledgeflow
       SPRING_DATASOURCE_PASSWORD: ledgeflow

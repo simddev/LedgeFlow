@@ -1,5 +1,7 @@
 package dev.simd.ledgeflow;
 
+import dev.simd.ledgeflow.event.AccountEvent;
+import dev.simd.ledgeflow.kafka.KafkaEventPublisher;
 import dev.simd.ledgeflow.model.Account;
 import dev.simd.ledgeflow.repository.AccountRepository;
 import dev.simd.ledgeflow.service.AccountService;
@@ -20,6 +22,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -71,6 +74,9 @@ class DepositIntegrationTest {
     @Autowired
     private AccountRepository accountRepository;
 
+    @Autowired
+    private KafkaEventPublisher kafkaEventPublisher;
+
     @Test
     void deposit_updatesBalance_inReadModel() {
         Account account = accountService.createAccount(UUID.randomUUID(), "EUR");
@@ -93,6 +99,30 @@ class DepositIntegrationTest {
         await().atMost(15, SECONDS).untilAsserted(() -> {
             Account updated = accountRepository.findById(account.getId()).orElseThrow();
             assertThat(updated.getBalance()).isEqualByComparingTo("150.00");
+        });
+    }
+
+    @Test
+    void deposit_isIdempotent_duplicateEventIgnored() {
+        UUID accountId = UUID.randomUUID();
+        Account account = accountService.createAccount(accountId, "EUR");
+
+        UUID correlationId = UUID.randomUUID();
+        AccountEvent event = new AccountEvent(
+                "MoneyDeposited", accountId, null,
+                new BigDecimal("100.00"), "EUR", correlationId, LocalDateTime.now().toString());
+
+        kafkaEventPublisher.publish(accountId.toString(), event);
+        await().atMost(15, SECONDS).untilAsserted(() -> {
+            Account updated = accountRepository.findById(account.getId()).orElseThrow();
+            assertThat(updated.getBalance()).isEqualByComparingTo("100.00");
+        });
+
+        // send exact same event again — consumer must ignore it
+        kafkaEventPublisher.publish(accountId.toString(), event);
+        await().during(4, SECONDS).atMost(6, SECONDS).untilAsserted(() -> {
+            Account updated = accountRepository.findById(account.getId()).orElseThrow();
+            assertThat(updated.getBalance()).isEqualByComparingTo("100.00");
         });
     }
 

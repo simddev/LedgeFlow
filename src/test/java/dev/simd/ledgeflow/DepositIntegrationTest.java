@@ -5,6 +5,7 @@ import dev.simd.ledgeflow.kafka.KafkaEventPublisher;
 import dev.simd.ledgeflow.model.Account;
 import dev.simd.ledgeflow.repository.AccountRepository;
 import dev.simd.ledgeflow.service.AccountService;
+import dev.simd.ledgeflow.service.AdminService;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.admin.NewTopic;
@@ -77,6 +78,9 @@ class DepositIntegrationTest {
     @Autowired
     private KafkaEventPublisher kafkaEventPublisher;
 
+    @Autowired
+    private AdminService adminService;
+
     @Test
     void deposit_updatesBalance_inReadModel() {
         Account account = accountService.createAccount(UUID.randomUUID(), "EUR");
@@ -123,6 +127,22 @@ class DepositIntegrationTest {
             Account updated = accountRepository.findById(account.getId()).orElseThrow();
             assertThat(updated.getBalance()).isEqualByComparingTo("100.00");
         });
+    }
+
+    @Test
+    void rebuild_restoresReadModel_fromKafkaEventLog() {
+        Account account = accountService.createAccount(UUID.randomUUID(), "EUR");
+        accountService.deposit(account.getId(), new BigDecimal("100.00"), "EUR");
+
+        await().atMost(15, SECONDS).untilAsserted(() -> {
+            Account updated = accountRepository.findById(account.getId()).orElseThrow();
+            assertThat(updated.getBalance()).isEqualByComparingTo("100.00");
+        });
+
+        adminService.rebuild();
+
+        Account rebuilt = accountRepository.findById(account.getId()).orElseThrow();
+        assertThat(rebuilt.getBalance()).isEqualByComparingTo("100.00");
     }
 
     @Test

@@ -51,6 +51,7 @@ public class EventConsumer {
         }
 
         boolean handled = switch (event.getType()) {
+            case "AccountCreated"    -> { createAccount(event);     yield true; }
             case "MoneyDeposited"    -> { processDeposit(event);    yield true; }
             case "MoneyWithdrawn"    -> { processWithdrawal(event); yield true; }
             case "TransferCompleted" -> { processTransfer(event);   yield true; }
@@ -63,6 +64,20 @@ public class EventConsumer {
             processed.setProcessedAt(LocalDateTime.now());
             processedEventRepository.save(processed);
         }
+    }
+
+    private void createAccount(AccountEvent event) {
+        if (accountRepository.existsById(event.getAccountId())) {
+            return;
+        }
+        Account account = new Account();
+        account.setId(event.getAccountId());
+        account.setOwnerId(event.getToAccountId());
+        account.setCurrency(event.getCurrency());
+        account.setBalance(BigDecimal.ZERO);
+        account.setCreatedAt(LocalDateTime.now());
+        account.setUpdatedAt(LocalDateTime.now());
+        accountRepository.save(account);
     }
 
     private void processDeposit(AccountEvent event) {

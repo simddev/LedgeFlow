@@ -40,7 +40,11 @@ public class AccountService {
         account.setBalance(BigDecimal.ZERO);
         account.setCreatedAt(LocalDateTime.now());
         account.setUpdatedAt(LocalDateTime.now());
-        return accountRepository.save(account);
+        Account saved = accountRepository.save(account);
+        kafkaEventPublisher.publish(saved.getId().toString(),
+                new AccountEvent("AccountCreated", saved.getId(), ownerId, BigDecimal.ZERO, currency,
+                        UUID.randomUUID(), LocalDateTime.now().toString()));
+        return saved;
     }
 
     public void deposit(UUID accountId, BigDecimal amount, String currency) {

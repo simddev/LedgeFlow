@@ -13,13 +13,15 @@ public class AuthController {
         this.authService = authService;
     }
 
+    record AuthRequest(String username, String password) {}
+
     @PostMapping("/register")
-    public String register(@RequestParam String username, @RequestParam String password) {
-        return authService.register(username, password);
+    public String register(@RequestBody AuthRequest request) {
+        return authService.register(request.username(), request.password());
     }
 
     @PostMapping("/login")
-    public String login(@RequestParam String username, @RequestParam String password) {
-        return authService.login(username, password);
+    public String login(@RequestBody AuthRequest request) {
+        return authService.login(request.username(), request.password());
     }
 }

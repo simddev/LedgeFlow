@@ -5,6 +5,7 @@ import dev.simd.ledgeflow.config.KafkaTopicConfig;
 import dev.simd.ledgeflow.event.AccountEvent;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.utils.Bytes;
+import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.kstream.KStream;
@@ -14,6 +15,9 @@ import org.apache.kafka.streams.kstream.TimeWindows;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.state.KeyValueStore;
 import org.apache.kafka.streams.state.WindowStore;
+
+import java.util.ArrayList;
+import java.util.Collections;
 
 import java.time.Duration;
 import org.springframework.beans.factory.annotation.Value;
@@ -54,12 +58,17 @@ public class BalanceTopology {
     public KTable<String, String> balanceTable(StreamsBuilder builder) {
         KStream<String, String> events = builder.stream(KafkaTopicConfig.ACCOUNT_EVENTS);
 
-        return events
+        // TransferCompleted is keyed by fromAccountId but must update both accounts.
+        // flatMap expands it into two records: one per affected account.
+        KStream<String, String> expanded = events
                 .filter((key, value) -> isBalanceEvent(value))
+                .flatMap((key, value) -> expandTransfer(key, value));
+
+        return expanded
                 .groupByKey()
                 .aggregate(
                         () -> BigDecimal.ZERO.toPlainString(),
-                        (accountId, eventJson, currentBalance) -> applyEvent(eventJson, currentBalance),
+                        (accountId, eventJson, currentBalance) -> applyEvent(accountId, eventJson, currentBalance),
                         Materialized.<String, String, KeyValueStore<Bytes, byte[]>>as("balance-store")
                                 .withKeySerde(Serdes.String())
                                 .withValueSerde(Serdes.String())
@@ -104,15 +113,34 @@ public class BalanceTopology {
                 || value.contains("TransferCompleted");
     }
 
-    private String applyEvent(String eventJson, String currentBalance) {
+    private java.util.List<KeyValue<String, String>> expandTransfer(String key, String value) {
+        try {
+            AccountEvent event = objectMapper.readValue(value, AccountEvent.class);
+            if (!"TransferCompleted".equals(event.getType()) || event.getToAccountId() == null) {
+                return Collections.singletonList(KeyValue.pair(key, value));
+            }
+            // emit one record per affected account so both balances are updated
+            java.util.List<KeyValue<String, String>> records = new ArrayList<>();
+            records.add(KeyValue.pair(event.getAccountId().toString(), value));
+            records.add(KeyValue.pair(event.getToAccountId().toString(), value));
+            return records;
+        } catch (Exception e) {
+            return Collections.singletonList(KeyValue.pair(key, value));
+        }
+    }
+
+    private String applyEvent(String accountId, String eventJson, String currentBalance) {
         try {
             AccountEvent event = objectMapper.readValue(eventJson, AccountEvent.class);
             BigDecimal balance = new BigDecimal(currentBalance);
-            switch (event.getType()) {
-                case "MoneyDeposited"    -> balance = balance.add(event.getAmount());
-                case "MoneyWithdrawn"    -> balance = balance.subtract(event.getAmount());
-                case "TransferCompleted" -> balance = balance.subtract(event.getAmount());
-            }
+            balance = switch (event.getType()) {
+                case "MoneyDeposited" -> balance.add(event.getAmount());
+                case "MoneyWithdrawn" -> balance.subtract(event.getAmount());
+                case "TransferCompleted" -> accountId.equals(event.getAccountId().toString())
+                        ? balance.subtract(event.getAmount())   // sender
+                        : balance.add(event.getAmount());        // receiver
+                default -> balance;
+            };
             return balance.toPlainString();
         } catch (Exception e) {
             return currentBalance;

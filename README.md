@@ -24,7 +24,7 @@ read model, never the source of truth.
 - Admin rebuild endpoint — deletes the entire read model and replays Kafka from offset 0
 - Micrometer metrics exposed at `/actuator/prometheus`
 - OpenTelemetry tracing — trace sampling at 100%, propagated through Kafka headers
-- Testcontainers integration tests — deposit and withdrawal flows verified end-to-end against real Kafka and PostgreSQL
+- Testcontainers integration tests — deposit, withdrawal, transfer, and idempotency flows verified end-to-end against real Kafka and PostgreSQL
 - Flyway versioned migrations — four tables managed
 
 ## Status

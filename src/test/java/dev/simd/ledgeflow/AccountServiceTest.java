@@ -185,6 +185,6 @@ class AccountServiceTest {
 
     private Account accountWithBalance(UUID id, String balance) {
         return new Account(id, UUID.randomUUID(), "EUR", new BigDecimal(balance),
-                LocalDateTime.now(), LocalDateTime.now());
+                LocalDateTime.now(), LocalDateTime.now(), null);
     }
 }

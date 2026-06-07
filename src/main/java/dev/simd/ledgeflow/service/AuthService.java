@@ -32,7 +32,7 @@ public class AuthService {
         user.setRole("USER");
         user.setCreatedAt(LocalDateTime.now());
         userRepository.save(user);
-        return jwtService.generateToken(username);
+        return jwtService.generateToken(username, user.getRole());
     }
 
     public String login(String username, String password) {
@@ -41,6 +41,6 @@ public class AuthService {
         if (!passwordEncoder.matches(password, user.getPassword())) {
             throw new RuntimeException("Invalid credentials");
         }
-        return jwtService.generateToken(username);
+        return jwtService.generateToken(username, user.getRole());
     }
 }

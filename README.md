@@ -30,4 +30,4 @@ read model, never the source of truth.
 
 ## Status
 
-Work in progress — Grafana dashboard coming next.
+Work in progress — README architecture diagram and dashboard screenshot coming next.

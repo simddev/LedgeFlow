@@ -15,9 +15,11 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
-import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -62,18 +64,24 @@ public class AdminService {
         props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
 
         try (KafkaConsumer<String, String> consumer = new KafkaConsumer<>(props)) {
-            TopicPartition partition = new TopicPartition(KafkaTopicConfig.ACCOUNT_EVENTS, 0);
-            consumer.assign(Collections.singletonList(partition));
-            consumer.seekToBeginning(Collections.singletonList(partition));
+            List<TopicPartition> partitions = consumer.partitionsFor(KafkaTopicConfig.ACCOUNT_EVENTS)
+                    .stream()
+                    .map(p -> new TopicPartition(p.topic(), p.partition()))
+                    .toList();
 
-            Map<TopicPartition, Long> endOffsets = consumer.endOffsets(Collections.singletonList(partition));
-            long endOffset = endOffsets.getOrDefault(partition, 0L);
+            consumer.assign(partitions);
+            consumer.seekToBeginning(partitions);
 
-            if (endOffset == 0) return;
+            Map<TopicPartition, Long> endOffsets = consumer.endOffsets(partitions);
+            Set<TopicPartition> remaining = new HashSet<>(endOffsets.keySet());
+            remaining.removeIf(tp -> endOffsets.get(tp) == 0);
 
-            while (consumer.position(partition) < endOffset) {
+            if (remaining.isEmpty()) return;
+
+            while (!remaining.isEmpty()) {
                 ConsumerRecords<String, String> records = consumer.poll(Duration.ofSeconds(5));
                 records.forEach(record -> eventConsumer.consume(record.value()));
+                remaining.removeIf(tp -> consumer.position(tp) >= endOffsets.get(tp));
             }
         }
     }

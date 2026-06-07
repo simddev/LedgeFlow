@@ -104,22 +104,21 @@ class DepositIntegrationTest {
 
     @Test
     void deposit_isIdempotent_duplicateEventIgnored() {
-        UUID accountId = UUID.randomUUID();
-        Account account = accountService.createAccount(accountId, "EUR");
+        Account account = accountService.createAccount(UUID.randomUUID(), "EUR");
 
         UUID correlationId = UUID.randomUUID();
         AccountEvent event = new AccountEvent(
-                "MoneyDeposited", accountId, null,
+                "MoneyDeposited", account.getId(), null,
                 new BigDecimal("100.00"), "EUR", correlationId, LocalDateTime.now().toString());
 
-        kafkaEventPublisher.publish(accountId.toString(), event);
+        kafkaEventPublisher.publish(account.getId().toString(), event);
         await().atMost(15, SECONDS).untilAsserted(() -> {
             Account updated = accountRepository.findById(account.getId()).orElseThrow();
             assertThat(updated.getBalance()).isEqualByComparingTo("100.00");
         });
 
         // send exact same event again — consumer must ignore it
-        kafkaEventPublisher.publish(accountId.toString(), event);
+        kafkaEventPublisher.publish(account.getId().toString(), event);
         await().during(4, SECONDS).atMost(6, SECONDS).untilAsserted(() -> {
             Account updated = accountRepository.findById(account.getId()).orElseThrow();
             assertThat(updated.getBalance()).isEqualByComparingTo("100.00");

@@ -69,6 +69,27 @@ curl -s http://localhost:8080/accounts/$ID \
 - Flyway versioned migrations — four tables managed
 - Docker Compose — `docker compose up --build` starts the full stack: app, Kafka, PostgreSQL, Prometheus, Grafana
 
+## Design decisions and trade-offs
+
+**Write-path consistency boundary**
+
+The write path (`deposit`, `withdraw`, `transfer`) reads the current balance from the PostgreSQL read model, validates it in memory, then publishes an event to Kafka. The Kafka Streams KTable is the authoritative balance, but it is not queried on the write path.
+
+This creates a TOCTOU race: two concurrent withdrawals can both read the same balance, both pass the sufficiency check, and both publish events — driving the account into a negative balance. In production this would be resolved by one of:
+- Optimistic locking (`@Version` on `Account`) so the second concurrent writer receives an `OptimisticLockException` and can retry
+- Querying the Kafka Streams state store via interactive queries, making the KTable the write-path authority
+- A dedicated command-side aggregate separate from the read model, updated transactionally before event publication
+
+For this scope the trade-off is intentional: the write and read paths are kept straightforward to follow, and the consistency boundary is documented rather than hidden.
+
+**Single-partition rebuild**
+
+`AdminService.doRebuild()` reads partition 0 explicitly. A topic configured with multiple partitions would silently miss events on the remaining partitions. Safe for a single-node development setup; production would iterate over all assigned partitions.
+
+**PostgreSQL as rebuildable read model**
+
+PostgreSQL holds no state that cannot be reconstructed by replaying Kafka from offset 0. The `POST /admin/rebuild` endpoint demonstrates this: it drops all read-model rows, then replays the full event log. Kafka is the source of truth; PostgreSQL is a queryable cache.
+
 ## Status
 
 Work in progress — README architecture diagram and dashboard screenshot coming next.

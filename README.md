@@ -64,7 +64,7 @@ curl -s http://localhost:8080/accounts/$ID \
 - Kafka Streams topology — KTable balance aggregation (transfer events fan-out to both accounts), windowed velocity detection, anomaly routing to `account.alerts`
 - Admin rebuild endpoint — deletes the entire read model and replays Kafka from offset 0
 - Micrometer metrics exposed at `/actuator/prometheus`
-- OpenTelemetry tracing — trace sampling at 100%, propagated through Kafka headers
+- Micrometer Tracing — 100% sampling, W3C trace context propagated through Kafka producer and consumer headers; no export backend in the dev stack
 - Testcontainers integration tests — deposit, withdrawal, transfer, idempotency, and admin rebuild verified end-to-end against real Kafka and PostgreSQL
 - Flyway versioned migrations — four tables managed
 - Docker Compose — `docker compose up --build` starts the full stack: app, Kafka, PostgreSQL, Prometheus, Grafana

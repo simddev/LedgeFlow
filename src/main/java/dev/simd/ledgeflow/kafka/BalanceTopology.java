@@ -3,6 +3,7 @@ package dev.simd.ledgeflow.kafka;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.simd.ledgeflow.config.KafkaTopicConfig;
 import dev.simd.ledgeflow.event.AccountEvent;
+import dev.simd.ledgeflow.metrics.LedgeFlowMetrics;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.streams.KeyValue;
@@ -39,9 +40,11 @@ public class BalanceTopology {
     private String bootstrapServers;
 
     private final ObjectMapper objectMapper;
+    private final LedgeFlowMetrics metrics;
 
-    public BalanceTopology(ObjectMapper objectMapper) {
+    public BalanceTopology(ObjectMapper objectMapper, LedgeFlowMetrics metrics) {
         this.objectMapper = objectMapper;
+        this.metrics = metrics;
     }
 
     @Bean(name = KafkaStreamsDefaultConfiguration.DEFAULT_STREAMS_CONFIG_BEAN_NAME)
@@ -91,7 +94,7 @@ public class BalanceTopology {
     public KStream<String, String> alertsStream(StreamsBuilder builder) {
         KStream<String, String> events = builder.stream(KafkaTopicConfig.ACCOUNT_EVENTS);
         KStream<String, String> alerts = events.filter((key, value) -> isLargeTransaction(value));
-        alerts.to(KafkaTopicConfig.ACCOUNT_ALERTS);
+        alerts.peek((key, value) -> metrics.incrementAlert()).to(KafkaTopicConfig.ACCOUNT_ALERTS);
         return alerts;
     }
 

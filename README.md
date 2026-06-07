@@ -82,10 +82,6 @@ This creates a TOCTOU race: two concurrent withdrawals can both read the same ba
 
 For this scope the trade-off is intentional: the write and read paths are kept straightforward to follow, and the consistency boundary is documented rather than hidden.
 
-**Single-partition rebuild**
-
-`AdminService.doRebuild()` reads partition 0 explicitly. A topic configured with multiple partitions would silently miss events on the remaining partitions. Safe for a single-node development setup; production would iterate over all assigned partitions.
-
 **PostgreSQL as rebuildable read model**
 
 PostgreSQL holds no state that cannot be reconstructed by replaying Kafka from offset 0. The `POST /admin/rebuild` endpoint demonstrates this: it drops all read-model rows, then replays the full event log. Kafka is the source of truth; PostgreSQL is a queryable cache.

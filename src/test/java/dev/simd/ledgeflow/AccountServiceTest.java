@@ -3,6 +3,7 @@ package dev.simd.ledgeflow;
 import dev.simd.ledgeflow.exception.AccountNotFoundException;
 import dev.simd.ledgeflow.exception.InsufficientFundsException;
 import dev.simd.ledgeflow.exception.InvalidRequestException;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import dev.simd.ledgeflow.kafka.KafkaEventPublisher;
 import dev.simd.ledgeflow.metrics.LedgeFlowMetrics;
 import dev.simd.ledgeflow.model.Account;
@@ -179,6 +180,30 @@ class AccountServiceTest {
         accountService.transfer(from, to, new BigDecimal("50.00"), "EUR");
 
         verify(kafkaEventPublisher, times(2)).publish(eq(from.toString()), any());
+    }
+
+    // --- optimistic locking ---
+
+    @Test
+    void withdraw_propagatesOptimisticLock_whenConcurrentModification() {
+        UUID id = UUID.randomUUID();
+        when(accountRepository.findById(id)).thenReturn(Optional.of(accountWithBalance(id, "100.00")));
+        when(accountRepository.save(any())).thenThrow(new ObjectOptimisticLockingFailureException(Account.class, id));
+
+        assertThatThrownBy(() -> accountService.withdraw(id, new BigDecimal("50.00"), "EUR"))
+                .isInstanceOf(ObjectOptimisticLockingFailureException.class);
+    }
+
+    @Test
+    void transfer_propagatesOptimisticLock_whenConcurrentModification() {
+        UUID from = UUID.randomUUID();
+        UUID to = UUID.randomUUID();
+        when(accountRepository.findById(from)).thenReturn(Optional.of(accountWithBalance(from, "200.00")));
+        when(accountRepository.findById(to)).thenReturn(Optional.of(accountWithBalance(to, "0.00")));
+        when(accountRepository.save(any())).thenThrow(new ObjectOptimisticLockingFailureException(Account.class, from));
+
+        assertThatThrownBy(() -> accountService.transfer(from, to, new BigDecimal("50.00"), "EUR"))
+                .isInstanceOf(ObjectOptimisticLockingFailureException.class);
     }
 
     // --- helpers ---

@@ -116,12 +116,16 @@ curl -s -X POST http://localhost:8080/admin/rebuild \
 
 The write path (`deposit`, `withdraw`, `transfer`) reads the current balance from the PostgreSQL read model, validates it in memory, then publishes an event to Kafka. The Kafka Streams KTable is the authoritative balance, but it is not queried on the write path.
 
-This creates a TOCTOU race: two concurrent withdrawals can both read the same balance, both pass the sufficiency check, and both publish events — driving the account into a negative balance. In production this would be resolved by one of:
-- Optimistic locking (`@Version` on `Account`) so the second concurrent writer receives an `OptimisticLockException` and can retry
-- Querying the Kafka Streams state store via interactive queries, making the KTable the write-path authority
-- A dedicated command-side aggregate separate from the read model, updated transactionally before event publication
+This creates a TOCTOU race: two concurrent withdrawals can both read the same balance, both pass the sufficiency check, and both publish events — driving the account into a negative balance.
 
-For this scope the trade-off is intentional: the write and read paths are kept straightforward to follow, and the consistency boundary is documented rather than hidden.
+`withdraw()` and `transfer()` include a partial mitigation: they bump the `@Version` column on the account row before publishing, so two concurrent requests serialise at the database commit — the second writer receives HTTP 409 and can retry. However, the Kafka publish happens before the database transaction commits, so in the window between publish and commit a second concurrent request may also have already published its event. Full prevention requires atomic command-write and event-publication, which needs either an outbox pattern or Kafka transactions.
+
+In production this would be fully resolved by one of:
+- An outbox pattern — write the event to a DB table in the same transaction as the command, then relay to Kafka
+- A dedicated command-side aggregate with balance authoritative on the write path, updated transactionally before event publication
+- Querying the Kafka Streams state store via interactive queries, making the KTable the write-path authority
+
+The current approach limits the race window and surfaces conflicts as retryable 409 responses rather than silent overwrites.
 
 **PostgreSQL as rebuildable read model**
 

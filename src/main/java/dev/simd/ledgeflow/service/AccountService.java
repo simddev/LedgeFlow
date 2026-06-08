@@ -11,6 +11,7 @@ import dev.simd.ledgeflow.exception.AccountNotFoundException;
 import dev.simd.ledgeflow.exception.InsufficientFundsException;
 import dev.simd.ledgeflow.exception.InvalidRequestException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -63,6 +64,7 @@ public class AccountService {
         metrics.incrementDeposit(amount);
     }
 
+    @Transactional
     public void withdraw(UUID accountId, BigDecimal amount, String currency) {
         if (amount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new InvalidRequestException("Amount must be positive");
@@ -71,6 +73,8 @@ public class AccountService {
         if (account.getBalance().compareTo(amount) < 0) {
             throw new InsufficientFundsException();
         }
+        account.setUpdatedAt(LocalDateTime.now());
+        accountRepository.save(account);
         AccountEvent event = new AccountEvent(
                 "MoneyWithdrawn", accountId, null, amount, currency,
                 UUID.randomUUID(), LocalDateTime.now().toString()
@@ -79,6 +83,7 @@ public class AccountService {
         metrics.incrementWithdrawal(amount);
     }
 
+    @Transactional
     public void transfer(UUID fromAccountId, UUID toAccountId, BigDecimal amount, String currency) {
         if (amount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new InvalidRequestException("Amount must be positive");
@@ -91,6 +96,8 @@ public class AccountService {
         if (source.getBalance().compareTo(amount) < 0) {
             throw new InsufficientFundsException();
         }
+        source.setUpdatedAt(LocalDateTime.now());
+        accountRepository.save(source);
         UUID correlationId = UUID.randomUUID();
         String timestamp = LocalDateTime.now().toString();
         kafkaEventPublisher.publish(fromAccountId.toString(),

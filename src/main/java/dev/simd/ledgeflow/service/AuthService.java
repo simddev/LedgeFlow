@@ -1,5 +1,7 @@
 package dev.simd.ledgeflow.service;
 
+import dev.simd.ledgeflow.exception.InvalidCredentialsException;
+import dev.simd.ledgeflow.exception.UsernameAlreadyTakenException;
 import dev.simd.ledgeflow.model.User;
 import dev.simd.ledgeflow.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -23,7 +25,7 @@ public class AuthService {
 
     public String register(String username, String password) {
         if (userRepository.findByUsername(username).isPresent()) {
-            throw new RuntimeException("Username already taken");
+            throw new UsernameAlreadyTakenException();
         }
         User user = new User();
         user.setId(UUID.randomUUID());
@@ -37,9 +39,9 @@ public class AuthService {
 
     public String login(String username, String password) {
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("Invalid credentials"));
+                .orElseThrow(InvalidCredentialsException::new);
         if (!passwordEncoder.matches(password, user.getPassword())) {
-            throw new RuntimeException("Invalid credentials");
+            throw new InvalidCredentialsException();
         }
         return jwtService.generateToken(username, user.getRole());
     }

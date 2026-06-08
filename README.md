@@ -76,6 +76,14 @@ curl -s -X POST http://localhost:8080/accounts/$ID/deposit \
 # Check balance (give the event consumer a moment to process)
 curl -s http://localhost:8080/accounts/$ID \
   -H "Authorization: Bearer $TOKEN"
+
+# Rebuild the entire read model from the Kafka event log (admin only)
+ADMIN_TOKEN=$(curl -s -X POST http://localhost:8080/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"admin"}')
+
+curl -s -X POST http://localhost:8080/admin/rebuild \
+  -H "Authorization: Bearer $ADMIN_TOKEN"
 ```
 
 ## Stack

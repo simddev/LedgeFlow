@@ -51,6 +51,7 @@ public class AccountService {
         return saved;
     }
 
+    // No @Transactional — deposit has no balance precondition and makes no write-side save, so there is nothing to version-lock.
     public void deposit(UUID accountId, BigDecimal amount, String currency) {
         if (amount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new InvalidRequestException("Amount must be positive");

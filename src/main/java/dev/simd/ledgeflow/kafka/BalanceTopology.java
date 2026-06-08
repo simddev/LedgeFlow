@@ -111,9 +111,15 @@ public class BalanceTopology {
 
     private boolean isBalanceEvent(String value) {
         if (value == null) return false;
-        return value.contains("MoneyDeposited")
-                || value.contains("MoneyWithdrawn")
-                || value.contains("TransferCompleted");
+        try {
+            AccountEvent event = objectMapper.readValue(value, AccountEvent.class);
+            String type = event.getType();
+            return "MoneyDeposited".equals(type)
+                    || "MoneyWithdrawn".equals(type)
+                    || "TransferCompleted".equals(type);
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     // TransferCompleted is keyed by fromAccountId, so without fan-out the receiver's balance store entry is never touched.

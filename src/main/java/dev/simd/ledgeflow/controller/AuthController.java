@@ -17,13 +17,15 @@ public class AuthController {
 
     record AuthRequest(@NotBlank String username, @NotBlank String password) {}
 
+    record TokenResponse(String token) {}
+
     @PostMapping("/register")
-    public String register(@Valid @RequestBody AuthRequest request) {
-        return authService.register(request.username(), request.password());
+    public TokenResponse register(@Valid @RequestBody AuthRequest request) {
+        return new TokenResponse(authService.register(request.username(), request.password()));
     }
 
     @PostMapping("/login")
-    public String login(@Valid @RequestBody AuthRequest request) {
-        return authService.login(request.username(), request.password());
+    public TokenResponse login(@Valid @RequestBody AuthRequest request) {
+        return new TokenResponse(authService.login(request.username(), request.password()));
     }
 }

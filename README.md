@@ -57,7 +57,7 @@ Grafana credentials: `admin` / `admin`. The LedgeFlow dashboard loads automatica
 # Register and get a JWT
 TOKEN=$(curl -s -X POST http://localhost:8080/auth/register \
   -H "Content-Type: application/json" \
-  -d '{"username":"alice","password":"secret"}')
+  -d '{"username":"alice","password":"secret"}' | jq -r '.token')
 
 # Create an account
 ACCOUNT=$(curl -s -X POST http://localhost:8080/accounts \
@@ -80,7 +80,7 @@ curl -s http://localhost:8080/accounts/$ID \
 # Rebuild the entire read model from the Kafka event log (admin only)
 ADMIN_TOKEN=$(curl -s -X POST http://localhost:8080/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"username":"admin","password":"admin"}')
+  -d '{"username":"admin","password":"admin"}' | jq -r '.token')
 
 curl -s -X POST http://localhost:8080/admin/rebuild \
   -H "Authorization: Bearer $ADMIN_TOKEN"

@@ -4,6 +4,39 @@ Event-sourced financial ledger implementing CQRS with Kafka Streams. Account sta
 derived entirely from an immutable Kafka event log — PostgreSQL serves as a rebuildable
 read model, never the source of truth.
 
+```mermaid
+flowchart TD
+    Client(["Client"])
+
+    subgraph app["Spring Boot"]
+        API["REST API"]
+        Consumer["Event Consumer"]
+        Streams["Kafka Streams"]
+    end
+
+    subgraph kafka["Kafka"]
+        Events[("account.events")]
+        Alerts[("account.alerts")]
+    end
+
+    PG[("PostgreSQL")]
+
+    subgraph obs["Observability"]
+        Prom["Prometheus"]
+        Graf["Grafana"]
+    end
+
+    Client -->|HTTP / JWT| API
+    API -->|write path| Events
+    Events -->|async| Consumer
+    Consumer -->|update read model| PG
+    API -->|read path| PG
+    Events -->|KTable aggregation| Streams
+    Streams -->|anomaly routing| Alerts
+    Prom -.->|scrape| API
+    Prom -.-> Graf
+```
+
 ## Getting started
 
 ```bash

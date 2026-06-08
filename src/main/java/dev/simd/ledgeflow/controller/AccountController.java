@@ -7,6 +7,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
@@ -24,7 +25,7 @@ public class AccountController {
         this.accountService = accountService;
     }
 
-    record CreateAccountRequest(@NotNull UUID ownerId, @NotBlank String currency) {}
+    record CreateAccountRequest(@NotNull UUID ownerId, @NotBlank @Size(min = 3, max = 3) String currency) {}
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
@@ -42,7 +43,7 @@ public class AccountController {
         return accountService.getAccountHistory(id);
     }
 
-    record AmountRequest(@NotNull @Positive BigDecimal amount, @NotBlank String currency) {}
+    record AmountRequest(@NotNull @Positive BigDecimal amount, @NotBlank @Size(min = 3, max = 3) String currency) {}
 
     @PostMapping("/{id}/deposit")
     @ResponseStatus(HttpStatus.ACCEPTED)

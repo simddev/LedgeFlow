@@ -5,6 +5,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
@@ -22,7 +23,7 @@ public class TransferController {
     }
 
     record TransferRequest(@NotNull UUID fromAccountId, @NotNull UUID toAccountId,
-                           @NotNull @Positive BigDecimal amount, @NotBlank String currency) {}
+                           @NotNull @Positive BigDecimal amount, @NotBlank @Size(min = 3, max = 3) String currency) {}
 
     @PostMapping
     @ResponseStatus(HttpStatus.ACCEPTED)

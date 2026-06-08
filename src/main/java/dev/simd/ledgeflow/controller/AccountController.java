@@ -3,6 +3,10 @@ package dev.simd.ledgeflow.controller;
 import dev.simd.ledgeflow.model.Account;
 import dev.simd.ledgeflow.model.Transaction;
 import dev.simd.ledgeflow.service.AccountService;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,11 +24,11 @@ public class AccountController {
         this.accountService = accountService;
     }
 
-    record CreateAccountRequest(UUID ownerId, String currency) {}
+    record CreateAccountRequest(@NotNull UUID ownerId, @NotBlank String currency) {}
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public Account createAccount(@RequestBody CreateAccountRequest request) {
+    public Account createAccount(@Valid @RequestBody CreateAccountRequest request) {
         return accountService.createAccount(request.ownerId(), request.currency());
     }
 
@@ -38,17 +42,17 @@ public class AccountController {
         return accountService.getAccountHistory(id);
     }
 
-    record AmountRequest(BigDecimal amount, String currency) {}
+    record AmountRequest(@NotNull @Positive BigDecimal amount, @NotBlank String currency) {}
 
     @PostMapping("/{id}/deposit")
     @ResponseStatus(HttpStatus.ACCEPTED)
-    public void deposit(@PathVariable UUID id, @RequestBody AmountRequest request) {
+    public void deposit(@PathVariable UUID id, @Valid @RequestBody AmountRequest request) {
         accountService.deposit(id, request.amount(), request.currency());
     }
 
     @PostMapping("/{id}/withdraw")
     @ResponseStatus(HttpStatus.ACCEPTED)
-    public void withdraw(@PathVariable UUID id, @RequestBody AmountRequest request) {
+    public void withdraw(@PathVariable UUID id, @Valid @RequestBody AmountRequest request) {
         accountService.withdraw(id, request.amount(), request.currency());
     }
 }

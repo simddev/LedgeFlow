@@ -1,6 +1,8 @@
 package dev.simd.ledgeflow.controller;
 
 import dev.simd.ledgeflow.service.AuthService;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -13,15 +15,15 @@ public class AuthController {
         this.authService = authService;
     }
 
-    record AuthRequest(String username, String password) {}
+    record AuthRequest(@NotBlank String username, @NotBlank String password) {}
 
     @PostMapping("/register")
-    public String register(@RequestBody AuthRequest request) {
+    public String register(@Valid @RequestBody AuthRequest request) {
         return authService.register(request.username(), request.password());
     }
 
     @PostMapping("/login")
-    public String login(@RequestBody AuthRequest request) {
+    public String login(@Valid @RequestBody AuthRequest request) {
         return authService.login(request.username(), request.password());
     }
 }

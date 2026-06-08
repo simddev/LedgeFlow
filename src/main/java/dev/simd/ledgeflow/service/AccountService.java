@@ -46,8 +46,8 @@ public class AccountService {
         account.setUpdatedAt(LocalDateTime.now());
         Account saved = accountRepository.save(account);
         kafkaEventPublisher.publish(saved.getId().toString(),
-                new AccountEvent("AccountCreated", saved.getId(), ownerId, BigDecimal.ZERO, currency,
-                        UUID.randomUUID(), LocalDateTime.now().toString()));
+                new AccountEvent("AccountCreated", saved.getId(), null, BigDecimal.ZERO, currency,
+                        UUID.randomUUID(), LocalDateTime.now().toString(), ownerId));
         return saved;
     }
 
@@ -58,7 +58,7 @@ public class AccountService {
         getAccount(accountId);
         AccountEvent event = new AccountEvent(
                 "MoneyDeposited", accountId, null, amount, currency,
-                UUID.randomUUID(), LocalDateTime.now().toString()
+                UUID.randomUUID(), LocalDateTime.now().toString(), null
         );
         kafkaEventPublisher.publish(accountId.toString(), event);
         metrics.incrementDeposit(amount);
@@ -77,7 +77,7 @@ public class AccountService {
         accountRepository.save(account);
         AccountEvent event = new AccountEvent(
                 "MoneyWithdrawn", accountId, null, amount, currency,
-                UUID.randomUUID(), LocalDateTime.now().toString()
+                UUID.randomUUID(), LocalDateTime.now().toString(), null
         );
         kafkaEventPublisher.publish(accountId.toString(), event);
         metrics.incrementWithdrawal(amount);
@@ -101,9 +101,9 @@ public class AccountService {
         UUID correlationId = UUID.randomUUID();
         String timestamp = LocalDateTime.now().toString();
         kafkaEventPublisher.publish(fromAccountId.toString(),
-                new AccountEvent("TransferInitiated", fromAccountId, toAccountId, amount, currency, correlationId, timestamp));
+                new AccountEvent("TransferInitiated", fromAccountId, toAccountId, amount, currency, correlationId, timestamp, null));
         kafkaEventPublisher.publish(fromAccountId.toString(),
-                new AccountEvent("TransferCompleted", fromAccountId, toAccountId, amount, currency, correlationId, timestamp));
+                new AccountEvent("TransferCompleted", fromAccountId, toAccountId, amount, currency, correlationId, timestamp, null));
         metrics.incrementTransfer(amount);
     }
 

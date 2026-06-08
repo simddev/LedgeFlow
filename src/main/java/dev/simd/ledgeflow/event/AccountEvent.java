@@ -18,4 +18,5 @@ public class AccountEvent {
     private String currency;
     private UUID correlationId;
     private String timestamp;
+    private UUID ownerId;
 }

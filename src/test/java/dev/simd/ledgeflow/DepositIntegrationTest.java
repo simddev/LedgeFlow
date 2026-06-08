@@ -113,7 +113,7 @@ class DepositIntegrationTest {
         UUID correlationId = UUID.randomUUID();
         AccountEvent event = new AccountEvent(
                 "MoneyDeposited", account.getId(), null,
-                new BigDecimal("100.00"), "EUR", correlationId, LocalDateTime.now().toString());
+                new BigDecimal("100.00"), "EUR", correlationId, LocalDateTime.now().toString(), null);
 
         kafkaEventPublisher.publish(account.getId().toString(), event);
         await().atMost(15, SECONDS).untilAsserted(() -> {

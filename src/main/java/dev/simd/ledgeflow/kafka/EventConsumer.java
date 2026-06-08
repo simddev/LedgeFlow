@@ -74,7 +74,7 @@ public class EventConsumer {
         }
         Account account = new Account();
         account.setId(event.getAccountId());
-        account.setOwnerId(event.getToAccountId());
+        account.setOwnerId(event.getOwnerId());
         account.setCurrency(event.getCurrency());
         account.setBalance(BigDecimal.ZERO);
         account.setCreatedAt(LocalDateTime.now());

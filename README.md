@@ -102,7 +102,7 @@ curl -s -X POST http://localhost:8080/admin/rebuild \
 - JWT authentication — register, login, role-based access; role stored as JWT claim, enforced by Spring Security
 - Kafka producer — all financial operations publish typed events to `account.events`
 - Event consumer — reads Kafka, updates PostgreSQL read model with idempotency
-- Kafka Streams topology — KTable balance aggregation (transfer events fan-out to both accounts), threshold-based large-transaction alerts routed to `account.alerts`
+- Kafka Streams topology — KTable balance aggregation (transfer events fan-out to both accounts), threshold-based large-transaction alerts routed to `account.alerts`; the `balance-store` state store is the foundation for interactive queries on the write path if the read model is ever removed
 - Admin rebuild endpoint — deletes the entire read model and replays Kafka from offset 0
 - Micrometer metrics exposed at `/actuator/prometheus`
 - Micrometer Tracing — 100% sampling, W3C trace context propagated through Kafka producer and consumer headers; no export backend in the dev stack

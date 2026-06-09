@@ -112,6 +112,7 @@ public class EventConsumer {
         insertTransaction(event.getToAccountId(), "TRANSFER_IN", event.getAmount(), destination.getBalance(), event.getCorrelationId());
     }
 
+    // Intentionally throws RuntimeException so the @KafkaListener error handler retries rather than silently skipping.
     private Account getAccount(UUID id) {
         return accountRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Account not found: " + id));

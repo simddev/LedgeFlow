@@ -133,7 +133,7 @@ The API authenticates all requests and enforces role-based access (`ADMIN` for t
 
 **PostgreSQL as rebuildable read model**
 
-PostgreSQL holds no state that cannot be reconstructed by replaying Kafka from offset 0. The `POST /admin/rebuild` endpoint demonstrates this: it drops all read-model rows, then replays the full event log. Kafka is the source of truth; PostgreSQL is a queryable cache.
+PostgreSQL holds no state that cannot be reconstructed by replaying Kafka from offset 0. The `POST /admin/rebuild` endpoint demonstrates this: it drops all read-model rows, then replays the full event log. Kafka is the source of truth; PostgreSQL is a queryable cache. The one exception is account creation: `createAccount` writes directly to PostgreSQL before publishing the event, so the row exists immediately on the normal path; on rebuild the `AccountCreated` event recreates it.
 
 ## Status
 

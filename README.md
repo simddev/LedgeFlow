@@ -127,6 +127,10 @@ In production this would be fully resolved by one of:
 
 The current approach limits the race window and surfaces conflicts as retryable 409 responses rather than silent overwrites.
 
+**Per-account authorization**
+
+The API authenticates all requests and enforces role-based access (`ADMIN` for the rebuild endpoint), but does not verify that the authenticated principal owns the account being acted on. Any authenticated user can read or mutate any account by UUID. This is a deliberate scope boundary; production enforcement would derive `ownerId` from the JWT subject and add an ownership check in the service layer.
+
 **PostgreSQL as rebuildable read model**
 
 PostgreSQL holds no state that cannot be reconstructed by replaying Kafka from offset 0. The `POST /admin/rebuild` endpoint demonstrates this: it drops all read-model rows, then replays the full event log. Kafka is the source of truth; PostgreSQL is a queryable cache.

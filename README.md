@@ -98,7 +98,7 @@ curl -s -X POST http://localhost:8080/admin/rebuild \
 
 ## What's built so far
 
-- REST API: accounts, deposit, withdrawal, transfer
+- REST API: accounts, deposit, withdrawal, transfer, transaction history
 - JWT authentication: register, login, role-based access; role stored as JWT claim, enforced by Spring Security
 - Kafka producer: all financial operations publish typed events to `account.events`
 - Event consumer: reads Kafka, updates PostgreSQL read model with idempotency

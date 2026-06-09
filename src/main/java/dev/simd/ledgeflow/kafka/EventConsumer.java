@@ -35,6 +35,10 @@ public class EventConsumer {
         this.objectMapper = objectMapper;
     }
 
+    /**
+     * Idempotent: each event is deduplicated by {@code correlationId} via the
+     * {@code processed_events} table, so redelivery and admin rebuild replays are both safe.
+     */
     @KafkaListener(topics = "${kafka.topic.account-events:account.events}",
                    groupId = "${spring.kafka.consumer.group-id}")
     @Transactional

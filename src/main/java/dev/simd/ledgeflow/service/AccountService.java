@@ -20,7 +20,7 @@ import java.util.UUID;
 
 /**
  * CQRS write path. Validates commands against the PostgreSQL read model, then publishes
- * typed events to {@code account.events}. Balances are never set here — the
+ * typed events to {@code account.events}. Balances are never set here; the
  * {@link dev.simd.ledgeflow.kafka.EventConsumer} projects them from the event log.
  * <p>
  * Reads from the read model before publishing create a TOCTOU window; {@code withdraw}
@@ -60,7 +60,7 @@ public class AccountService {
         return saved;
     }
 
-    // No @Transactional — deposit has no balance precondition and makes no write-side save, so there is nothing to version-lock.
+    // No @Transactional: deposit has no balance precondition and makes no write-side save, so there is nothing to version-lock.
     public void deposit(UUID accountId, BigDecimal amount, String currency) {
         if (amount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new InvalidRequestException("Amount must be positive");

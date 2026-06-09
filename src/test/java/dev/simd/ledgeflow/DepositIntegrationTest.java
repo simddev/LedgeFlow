@@ -121,7 +121,7 @@ class DepositIntegrationTest {
             assertThat(updated.getBalance()).isEqualByComparingTo("100.00");
         });
 
-        // send exact same event again — consumer must ignore it
+        // send exact same event again; consumer must ignore it
         kafkaEventPublisher.publish(account.getId().toString(), event);
         await().during(4, SECONDS).atMost(6, SECONDS).untilAsserted(() -> {
             Account updated = accountRepository.findById(account.getId()).orElseThrow();

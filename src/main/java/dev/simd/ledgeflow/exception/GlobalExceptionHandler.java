@@ -27,7 +27,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
     ProblemDetail handleConflict(ObjectOptimisticLockingFailureException ex) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT,
-                "A concurrent modification was detected — please retry.");
+                "A concurrent modification was detected, please retry.");
     }
 
     @ExceptionHandler(UsernameAlreadyTakenException.class)

@@ -148,3 +148,7 @@ PostgreSQL holds no state that cannot be reconstructed by replaying Kafka from o
 ## Status
 
 Dashboard screenshot pending: run `docker compose up` and capture the Grafana LedgeFlow panel.
+
+---
+
+MIT License. Author: Simon Durakovic · [github.com/simddev](https://github.com/simddev)

@@ -131,6 +131,10 @@ The current approach limits the race window and surfaces conflicts as retryable 
 
 The API authenticates all requests and enforces role-based access (`ADMIN` for the rebuild endpoint), but does not verify that the authenticated principal owns the account being acted on. Any authenticated user can read or mutate any account by UUID. This is a deliberate scope boundary; production enforcement would derive `ownerId` from the JWT subject and add an ownership check in the service layer.
 
+**Event consumer error handling**
+
+If the consumer cannot find an account row, it throws a `RuntimeException` so the `@KafkaListener` error handler retries rather than silently skipping the event. There is no dead-letter topic or maximum retry limit configured, so a permanently missing row would stall the partition. In production this would be resolved by configuring a `DefaultErrorHandler` with a finite back-off and a dead-letter topic.
+
 **PostgreSQL as rebuildable read model**
 
 PostgreSQL holds no state that cannot be reconstructed by replaying Kafka from offset 0. The `POST /admin/rebuild` endpoint demonstrates this: it drops all read-model rows, then replays the full event log. Kafka is the source of truth; PostgreSQL is a queryable cache. The one exception is account creation: `createAccount` writes directly to PostgreSQL before publishing the event, so the row exists immediately on the normal path; on rebuild the `AccountCreated` event recreates it.

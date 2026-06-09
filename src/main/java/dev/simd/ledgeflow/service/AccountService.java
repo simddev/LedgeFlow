@@ -18,6 +18,15 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * CQRS write path. Validates commands against the PostgreSQL read model, then publishes
+ * typed events to {@code account.events}. Balances are never set here — the
+ * {@link dev.simd.ledgeflow.kafka.EventConsumer} projects them from the event log.
+ * <p>
+ * Reads from the read model before publishing create a TOCTOU window; {@code withdraw}
+ * and {@code transfer} mitigate this with an {@code @Version} bump that serialises
+ * concurrent DB commits, surfacing conflicts as HTTP 409.
+ */
 @Service
 public class AccountService {
 

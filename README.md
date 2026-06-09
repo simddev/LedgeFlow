@@ -111,7 +111,7 @@ curl -s -X POST http://localhost:8080/admin/rebuild \
 - Kafka Streams topology: KTable balance aggregation (transfer events fan-out to both accounts), threshold-based large-transaction alerts routed to `account.alerts`; the `balance-store` state store is the foundation for interactive queries on the write path if the read model is ever removed
 - Admin rebuild endpoint: deletes the entire read model and replays Kafka from offset 0
 - Micrometer metrics exposed at `/actuator/prometheus`
-- Micrometer Tracing: 100% sampling, W3C trace context propagated through Kafka producer and consumer headers; no export backend in the dev stack
+- Micrometer Tracing: 100% sampling, W3C trace context propagated through Kafka producer and consumer headers; trace IDs are visible in logs; adding Tempo or Zipkin is a configuration-only change
 - Testcontainers integration tests: deposit, withdrawal, transfer, idempotency, and admin rebuild verified end-to-end against real Kafka and PostgreSQL
 - Flyway versioned migrations: five migrations, four tables (`accounts`, `transactions`, `processed_events`, `users`)
 - Docker Compose: `docker compose up --build` starts the full stack: app, Kafka, PostgreSQL, Prometheus, Grafana

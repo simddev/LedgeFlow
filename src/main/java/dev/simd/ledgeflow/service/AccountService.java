@@ -74,6 +74,11 @@ public class AccountService {
         metrics.incrementDeposit(amount);
     }
 
+    /**
+     * The {@code save()} call does not update the balance; it exists solely to bump the
+     * {@code @Version} column so two concurrent withdrawals collide at the DB commit,
+     * and the losing request receives HTTP 409 rather than both passing the balance check.
+     */
     @Transactional
     public void withdraw(UUID accountId, BigDecimal amount, String currency) {
         if (amount.compareTo(BigDecimal.ZERO) <= 0) {
@@ -93,6 +98,11 @@ public class AccountService {
         metrics.incrementWithdrawal(amount);
     }
 
+    /**
+     * The {@code save()} call does not update the balance; it exists solely to bump the
+     * {@code @Version} column on the source account so two concurrent transfers from the
+     * same account collide at the DB commit, surfacing the conflict as HTTP 409.
+     */
     @Transactional
     public void transfer(UUID fromAccountId, UUID toAccountId, BigDecimal amount, String currency) {
         if (amount.compareTo(BigDecimal.ZERO) <= 0) {

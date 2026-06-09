@@ -50,6 +50,13 @@ public class AdminService {
         metrics.getRebuildTimer().record(() -> doRebuild());
     }
 
+    /**
+     * Wipes the entire read model, then replays {@code account.events} from offset 0 using
+     * a throwaway consumer group so no committed offset interferes. End offsets are
+     * snapshotted before polling begins, ensuring the loop terminates even if new events
+     * arrive during the rebuild. Projection logic is intentionally delegated to
+     * {@link EventConsumer#consume} so it stays single-sourced.
+     */
     private void doRebuild() {
         transactionRepository.deleteAll();
         processedEventRepository.deleteAll();

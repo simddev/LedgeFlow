@@ -52,6 +52,12 @@ public class BalanceTopology {
         return new KafkaStreamsConfiguration(props);
     }
 
+    /**
+     * Materialises per-account balances into the {@code balance-store} state store.
+     * This store is the authoritative balance and the intended write-path source via
+     * Kafka Streams interactive queries, eliminating the need to read from the PostgreSQL
+     * read model on the write path.
+     */
     @Bean
     public KTable<String, String> balanceTable(StreamsBuilder builder) {
         KStream<String, String> events = builder.stream(KafkaTopicConfig.ACCOUNT_EVENTS);

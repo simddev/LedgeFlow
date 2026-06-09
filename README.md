@@ -43,6 +43,12 @@ flowchart TD
 docker compose up --build
 ```
 
+To run the test suite (requires Docker for Testcontainers):
+
+```bash
+./mvnw verify
+```
+
 | Service    | URL                          |
 |------------|------------------------------|
 | API        | http://localhost:8080        |

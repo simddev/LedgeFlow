@@ -41,6 +41,10 @@ public class JwtService {
         return (String) extractClaims(token).get("role");
     }
 
+    /**
+     * Validates signature (via {@code extractClaims}), expiry, and subject match.
+     * Does not check revocation; tokens remain valid until expiry by design.
+     */
     public boolean isTokenValid(String token, String username) {
         return extractUsername(token).equals(username) && !isTokenExpired(token);
     }

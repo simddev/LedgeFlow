@@ -171,7 +171,7 @@ class AccountServiceTest {
     }
 
     @Test
-    void transfer_publishesTwoEvents_whenValid() {
+    void transfer_publishesEvent_whenValid() {
         UUID from = UUID.randomUUID();
         UUID to = UUID.randomUUID();
         when(accountRepository.findById(from)).thenReturn(Optional.of(accountWithBalance(from, "200.00")));
@@ -179,7 +179,7 @@ class AccountServiceTest {
 
         accountService.transfer(from, to, new BigDecimal("50.00"), "EUR");
 
-        verify(kafkaEventPublisher, times(2)).publish(eq(from.toString()), any());
+        verify(kafkaEventPublisher, times(1)).publish(eq(from.toString()), any());
     }
 
     // --- optimistic locking ---

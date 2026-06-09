@@ -102,8 +102,6 @@ public class AccountService {
         UUID correlationId = UUID.randomUUID();
         String timestamp = LocalDateTime.now().toString();
         kafkaEventPublisher.publish(fromAccountId.toString(),
-                new AccountEvent("TransferInitiated", fromAccountId, toAccountId, amount, currency, correlationId, timestamp, null));
-        kafkaEventPublisher.publish(fromAccountId.toString(),
                 new AccountEvent("TransferCompleted", fromAccountId, toAccountId, amount, currency, correlationId, timestamp, null));
         metrics.incrementTransfer(amount);
     }

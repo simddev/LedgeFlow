@@ -15,8 +15,8 @@ import java.util.UUID;
 public class ProcessedEvent {
 
     @Id
-    @Column(name = "event_id")
-    private UUID eventId;
+    @Column(name = "correlation_id")
+    private UUID correlationId;
 
     @Column(name = "processed_at", nullable = false)
     private LocalDateTime processedAt;

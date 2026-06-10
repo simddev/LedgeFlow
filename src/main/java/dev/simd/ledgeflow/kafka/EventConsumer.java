@@ -64,7 +64,7 @@ public class EventConsumer {
 
         if (handled) {
             ProcessedEvent processed = new ProcessedEvent();
-            processed.setEventId(event.getCorrelationId());
+            processed.setCorrelationId(event.getCorrelationId());
             processed.setProcessedAt(LocalDateTime.now());
             processedEventRepository.save(processed);
         }

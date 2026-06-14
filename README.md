@@ -151,4 +151,6 @@ Dashboard screenshot pending: run `docker compose up` and capture the Grafana Le
 
 ---
 
-MIT License. Author: Simon D. · [github.com/simddev](https://github.com/simddev)
+GPL3 License. 
+Author: Simon D. · [github.com/simddev](https://github.com/simddev)
+Contact: simon.d.dev@proton.me

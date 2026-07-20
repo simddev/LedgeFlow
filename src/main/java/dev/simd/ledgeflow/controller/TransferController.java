@@ -2,6 +2,7 @@ package dev.simd.ledgeflow.controller;
 
 import dev.simd.ledgeflow.service.AccountService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
@@ -23,7 +24,8 @@ public class TransferController {
     }
 
     record TransferRequest(@NotNull UUID fromAccountId, @NotNull UUID toAccountId,
-                           @NotNull @Positive BigDecimal amount, @NotBlank @Size(min = 3, max = 3) String currency) {}
+                           @NotNull @Positive @Digits(integer = 15, fraction = 4) BigDecimal amount,
+                           @NotBlank @Size(min = 3, max = 3) String currency) {}
 
     @PostMapping
     @ResponseStatus(HttpStatus.ACCEPTED)

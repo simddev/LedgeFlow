@@ -4,6 +4,7 @@ import dev.simd.ledgeflow.model.Account;
 import dev.simd.ledgeflow.model.Transaction;
 import dev.simd.ledgeflow.service.AccountService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
@@ -43,7 +44,8 @@ public class AccountController {
         return accountService.getAccountHistory(id);
     }
 
-    record AmountRequest(@NotNull @Positive BigDecimal amount, @NotBlank @Size(min = 3, max = 3) String currency) {}
+    record AmountRequest(@NotNull @Positive @Digits(integer = 15, fraction = 4) BigDecimal amount,
+                         @NotBlank @Size(min = 3, max = 3) String currency) {}
 
     @PostMapping("/{id}/deposit")
     @ResponseStatus(HttpStatus.ACCEPTED)

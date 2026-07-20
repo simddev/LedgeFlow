@@ -1,19 +1,20 @@
 package dev.simd.ledgeflow.service;
 
 import dev.simd.ledgeflow.event.AccountEvent;
+import dev.simd.ledgeflow.exception.AccountNotFoundException;
+import dev.simd.ledgeflow.exception.InsufficientFundsException;
+import dev.simd.ledgeflow.exception.InvalidRequestException;
 import dev.simd.ledgeflow.kafka.KafkaEventPublisher;
 import dev.simd.ledgeflow.metrics.LedgeFlowMetrics;
 import dev.simd.ledgeflow.model.Account;
 import dev.simd.ledgeflow.model.Transaction;
 import dev.simd.ledgeflow.repository.AccountRepository;
 import dev.simd.ledgeflow.repository.TransactionRepository;
-import dev.simd.ledgeflow.exception.AccountNotFoundException;
-import dev.simd.ledgeflow.exception.InsufficientFundsException;
-import dev.simd.ledgeflow.exception.InvalidRequestException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -56,7 +57,7 @@ public class AccountService {
         Account saved = accountRepository.save(account);
         kafkaEventPublisher.publish(saved.getId().toString(),
                 new AccountEvent("AccountCreated", saved.getId(), null, BigDecimal.ZERO, currency,
-                        UUID.randomUUID(), LocalDateTime.now().toString(), ownerId));
+                        UUID.randomUUID(), Instant.now().toString(), ownerId));
         return saved;
     }
 
@@ -65,10 +66,11 @@ public class AccountService {
         if (amount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new InvalidRequestException("Amount must be positive");
         }
-        getAccount(accountId);
+        Account account = getAccount(accountId);
+        validateCurrency(account, currency);
         AccountEvent event = new AccountEvent(
                 "MoneyDeposited", accountId, null, amount, currency,
-                UUID.randomUUID(), LocalDateTime.now().toString(), null
+                UUID.randomUUID(), Instant.now().toString(), null
         );
         kafkaEventPublisher.publish(accountId.toString(), event);
         metrics.incrementDeposit(amount);
@@ -85,6 +87,7 @@ public class AccountService {
             throw new InvalidRequestException("Amount must be positive");
         }
         Account account = getAccount(accountId);
+        validateCurrency(account, currency);
         if (account.getBalance().compareTo(amount) < 0) {
             throw new InsufficientFundsException();
         }
@@ -92,7 +95,7 @@ public class AccountService {
         accountRepository.save(account);
         AccountEvent event = new AccountEvent(
                 "MoneyWithdrawn", accountId, null, amount, currency,
-                UUID.randomUUID(), LocalDateTime.now().toString(), null
+                UUID.randomUUID(), Instant.now().toString(), null
         );
         kafkaEventPublisher.publish(accountId.toString(), event);
         metrics.incrementWithdrawal(amount);
@@ -112,16 +115,18 @@ public class AccountService {
             throw new InvalidRequestException("Source and destination accounts must differ");
         }
         Account source = getAccount(fromAccountId);
-        getAccount(toAccountId);
+        Account destination = getAccount(toAccountId);
+        validateCurrency(source, currency);
+        validateCurrency(destination, currency);
         if (source.getBalance().compareTo(amount) < 0) {
             throw new InsufficientFundsException();
         }
         source.setUpdatedAt(LocalDateTime.now());
         accountRepository.save(source);
         UUID correlationId = UUID.randomUUID();
-        String timestamp = LocalDateTime.now().toString();
         kafkaEventPublisher.publish(fromAccountId.toString(),
-                new AccountEvent("TransferCompleted", fromAccountId, toAccountId, amount, currency, correlationId, timestamp, null));
+                new AccountEvent("TransferCompleted", fromAccountId, toAccountId, amount, currency,
+                        correlationId, Instant.now().toString(), null));
         metrics.incrementTransfer(amount);
     }
 
@@ -132,5 +137,13 @@ public class AccountService {
 
     public List<Transaction> getAccountHistory(UUID id) {
         return transactionRepository.findByAccountIdOrderByOccurredAtDesc(id);
+    }
+
+    private void validateCurrency(Account account, String currency) {
+        if (!account.getCurrency().equals(currency)) {
+            throw new InvalidRequestException(
+                    "Currency mismatch: account uses " + account.getCurrency()
+                    + " but request specified " + currency);
+        }
     }
 }

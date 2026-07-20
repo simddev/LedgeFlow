@@ -18,7 +18,7 @@ public class AdminController {
     }
 
     @PostMapping("/rebuild")
-    @ResponseStatus(HttpStatus.ACCEPTED)
+    @ResponseStatus(HttpStatus.OK)
     public void rebuild() {
         adminService.rebuild();
     }

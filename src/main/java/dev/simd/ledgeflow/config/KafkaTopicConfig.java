@@ -10,6 +10,7 @@ public class KafkaTopicConfig {
 
     public static final String ACCOUNT_EVENTS = "account.events";
     public static final String ACCOUNT_ALERTS = "account.alerts";
+    public static final String ACCOUNT_EVENTS_DLT = "account.events.DLT";
 
     @Bean
     public NewTopic accountEventsTopic() {
@@ -19,5 +20,10 @@ public class KafkaTopicConfig {
     @Bean
     public NewTopic accountAlertsTopic() {
         return TopicBuilder.name(ACCOUNT_ALERTS).build();
+    }
+
+    @Bean
+    public NewTopic accountEventsDltTopic() {
+        return TopicBuilder.name(ACCOUNT_EVENTS_DLT).build();
     }
 }

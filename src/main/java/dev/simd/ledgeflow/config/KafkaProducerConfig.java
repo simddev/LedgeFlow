@@ -30,7 +30,10 @@ public class KafkaProducerConfig {
 
     @Bean
     public KafkaTemplate<String, String> kafkaTemplate(ProducerFactory<String, String> producerFactory) {
-        return new KafkaTemplate<>(producerFactory);
+        KafkaTemplate<String, String> template = new KafkaTemplate<>(producerFactory);
+        // mirrors spring.kafka.template.observation-enabled; must be set here since Boot's auto-config backed off
+        template.setObservationEnabled(true);
+        return template;
     }
 
     @Bean

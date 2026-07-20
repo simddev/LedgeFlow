@@ -122,9 +122,9 @@ curl -s -X POST http://localhost:8080/admin/rebuild \
 
 The write path (`deposit`, `withdraw`, `transfer`) reads the current balance from the PostgreSQL read model, validates it in memory, then publishes an event to Kafka. The Kafka Streams KTable is the authoritative balance, but it is not queried on the write path.
 
-This creates a TOCTOU race: two concurrent withdrawals can both read the same balance, both pass the sufficiency check, and both publish events, driving the account into a negative balance.
+This creates a TOCTOU race whose exploitable window is the entire produce-to-projection latency (the time between publishing an event and the consumer committing the resulting balance update to PostgreSQL), typically tens to hundreds of milliseconds. Within that window, any number of requests fired sequentially — not just concurrently — can all pass the same stale balance check and publish events, driving the account arbitrarily negative without requiring two requests to overlap in time.
 
-`withdraw()` and `transfer()` include a partial mitigation: they bump the `@Version` column on the account row before publishing, so two concurrent requests serialise at the database commit; the second writer receives HTTP 409 and can retry. However, the Kafka publish happens before the database transaction commits, so in the window between publish and commit a second concurrent request may also have already published its event. Full prevention requires atomic command-write and event-publication, which needs either an outbox pattern or Kafka transactions.
+`withdraw()` and `transfer()` include a partial mitigation: they bump the `@Version` column on the account row before publishing, so two truly concurrent requests (arriving at the same instant) serialise at the database commit; the second writer receives HTTP 409 and can retry. This does not close the sequential window described above. Full prevention requires atomic command-write and event-publication, which needs either an outbox pattern or Kafka transactions.
 
 In production this would be fully resolved by one of:
 - An outbox pattern: write the event to a DB table in the same transaction as the command, then relay to Kafka
@@ -139,7 +139,7 @@ The API authenticates all requests and enforces role-based access (`ADMIN` for t
 
 **Event consumer error handling**
 
-If the consumer cannot find an account row, it throws a `RuntimeException` so the `@KafkaListener` error handler retries rather than silently skipping the event. There is no dead-letter topic or maximum retry limit configured, so a permanently missing row would stall the partition. In production this would be resolved by configuring a `DefaultErrorHandler` with a finite back-off and a dead-letter topic.
+If the consumer cannot find an account row, it throws a `RuntimeException` so the `@KafkaListener` error handler retries rather than silently skipping the event. A `DefaultErrorHandler` is configured with a fixed back-off (3 retries, 1 s apart); after exhausting retries the record is forwarded to `account.events.DLT` via a `DeadLetterPublishingRecoverer`, keeping the main partition moving and making failures operationally visible.
 
 **PostgreSQL as rebuildable read model**
 

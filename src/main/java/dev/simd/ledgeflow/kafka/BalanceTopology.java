@@ -16,6 +16,8 @@ import org.apache.kafka.streams.state.KeyValueStore;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -30,6 +32,8 @@ import java.util.Map;
 @Configuration
 @EnableKafkaStreams
 public class BalanceTopology {
+
+    private static final Logger log = LoggerFactory.getLogger(BalanceTopology.class);
 
     @Value("${spring.kafka.bootstrap-servers}")
     private String bootstrapServers;
@@ -54,9 +58,9 @@ public class BalanceTopology {
 
     /**
      * Materialises per-account balances into the {@code balance-store} state store.
-     * This store is the authoritative balance and the intended write-path source via
-     * Kafka Streams interactive queries, eliminating the need to read from the PostgreSQL
-     * read model on the write path.
+     * The store is the foundation for Kafka Streams interactive queries: if the PostgreSQL
+     * read model is ever removed, the write path can query {@code balance-store} directly
+     * instead. It is not queried on the write path in the current implementation.
      */
     @Bean
     public KTable<String, String> balanceTable(StreamsBuilder builder) {
@@ -94,6 +98,7 @@ public class BalanceTopology {
             return event.getAmount() != null
                     && event.getAmount().compareTo(new BigDecimal("10000")) > 0;
         } catch (Exception e) {
+            log.warn("Failed to parse event for large-transaction check: {}", e.getMessage());
             return false;
         }
     }
@@ -107,6 +112,7 @@ public class BalanceTopology {
                     || "MoneyWithdrawn".equals(type)
                     || "TransferCompleted".equals(type);
         } catch (Exception e) {
+            log.warn("Failed to parse event for balance-event filter: {}", e.getMessage());
             return false;
         }
     }
@@ -124,6 +130,7 @@ public class BalanceTopology {
             records.add(KeyValue.pair(event.getToAccountId().toString(), value));
             return records;
         } catch (Exception e) {
+            log.warn("Failed to expand transfer event for key {}: {}", key, e.getMessage());
             return Collections.singletonList(KeyValue.pair(key, value));
         }
     }
@@ -142,6 +149,7 @@ public class BalanceTopology {
             };
             return balance.toPlainString();
         } catch (Exception e) {
+            log.warn("Failed to apply event to balance for account {}: {}", accountId, e.getMessage());
             return currentBalance;
         }
     }

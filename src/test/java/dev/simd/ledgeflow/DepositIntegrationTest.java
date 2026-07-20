@@ -23,7 +23,6 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -95,8 +94,12 @@ class DepositIntegrationTest {
     @Test
     void withdrawal_updatesBalance_inReadModel() {
         Account account = accountService.createAccount(UUID.randomUUID(), "EUR");
-        account.setBalance(new BigDecimal("200.00"));
-        accountRepository.save(account);
+        accountService.deposit(account.getId(), new BigDecimal("200.00"), "EUR");
+
+        await().atMost(15, SECONDS).untilAsserted(() -> {
+            Account updated = accountRepository.findById(account.getId()).orElseThrow();
+            assertThat(updated.getBalance()).isEqualByComparingTo("200.00");
+        });
 
         accountService.withdraw(account.getId(), new BigDecimal("50.00"), "EUR");
 
@@ -113,7 +116,7 @@ class DepositIntegrationTest {
         UUID correlationId = UUID.randomUUID();
         AccountEvent event = new AccountEvent(
                 "MoneyDeposited", account.getId(), null,
-                new BigDecimal("100.00"), "EUR", correlationId, LocalDateTime.now().toString(), null);
+                new BigDecimal("100.00"), "EUR", correlationId, java.time.Instant.now().toString(), null);
 
         kafkaEventPublisher.publish(account.getId().toString(), event);
         await().atMost(15, SECONDS).untilAsserted(() -> {
@@ -148,8 +151,12 @@ class DepositIntegrationTest {
     @Test
     void transfer_updatesBalances_inReadModel() {
         Account source = accountService.createAccount(UUID.randomUUID(), "EUR");
-        source.setBalance(new BigDecimal("300.00"));
-        accountRepository.save(source);
+        accountService.deposit(source.getId(), new BigDecimal("300.00"), "EUR");
+
+        await().atMost(15, SECONDS).untilAsserted(() -> {
+            Account updated = accountRepository.findById(source.getId()).orElseThrow();
+            assertThat(updated.getBalance()).isEqualByComparingTo("300.00");
+        });
 
         Account destination = accountService.createAccount(UUID.randomUUID(), "EUR");
 

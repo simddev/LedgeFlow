@@ -5,7 +5,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.kafka.test.context.EmbeddedKafka;
 
 @SpringBootTest
-@EmbeddedKafka(partitions = 1, topics = {"account.events", "account.alerts"})
+@EmbeddedKafka(partitions = 1, topics = {"account.events", "account.alerts", "account.events.DLT"})
 class LedgeFlowApplicationTests {
 
     @Test

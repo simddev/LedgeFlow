@@ -10,13 +10,15 @@ import dev.simd.ledgeflow.model.Account;
 import dev.simd.ledgeflow.model.Transaction;
 import dev.simd.ledgeflow.repository.AccountRepository;
 import dev.simd.ledgeflow.repository.TransactionRepository;
+import dev.simd.ledgeflow.repository.UserRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.UUID;
 
 /**
@@ -33,20 +35,26 @@ public class AccountService {
 
     private final AccountRepository accountRepository;
     private final TransactionRepository transactionRepository;
+    private final UserRepository userRepository;
     private final KafkaEventPublisher kafkaEventPublisher;
     private final LedgeFlowMetrics metrics;
 
     public AccountService(AccountRepository accountRepository,
                           TransactionRepository transactionRepository,
+                          UserRepository userRepository,
                           KafkaEventPublisher kafkaEventPublisher,
                           LedgeFlowMetrics metrics) {
         this.accountRepository = accountRepository;
         this.transactionRepository = transactionRepository;
+        this.userRepository = userRepository;
         this.kafkaEventPublisher = kafkaEventPublisher;
         this.metrics = metrics;
     }
 
     public Account createAccount(UUID ownerId, String currency) {
+        if (!userRepository.existsById(ownerId)) {
+            throw new InvalidRequestException("Owner not found: " + ownerId);
+        }
         Account account = new Account();
         account.setId(UUID.randomUUID());
         account.setOwnerId(ownerId);
@@ -135,8 +143,8 @@ public class AccountService {
                 .orElseThrow(() -> new AccountNotFoundException(id));
     }
 
-    public List<Transaction> getAccountHistory(UUID id) {
-        return transactionRepository.findByAccountIdOrderByOccurredAtDesc(id);
+    public Page<Transaction> getAccountHistory(UUID id, Pageable pageable) {
+        return transactionRepository.findByAccountId(id, pageable);
     }
 
     private void validateCurrency(Account account, String currency) {

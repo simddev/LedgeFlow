@@ -141,6 +141,10 @@ The API authenticates all requests and enforces role-based access (`ADMIN` for t
 
 If the consumer cannot find an account row, it throws a `RuntimeException` so the `@KafkaListener` error handler retries rather than silently skipping the event. A `DefaultErrorHandler` is configured with a fixed back-off (3 retries, 1 s apart); after exhausting retries the record is forwarded to `account.events.DLT` via a `DeadLetterPublishingRecoverer`, keeping the main partition moving and making failures operationally visible.
 
+**Large-transaction alert threshold**
+
+The Kafka Streams topology flags any transaction exceeding 10,000 as a large-transaction alert, regardless of currency. The threshold is a fixed nominal value; in a multi-currency system a proper implementation would normalise amounts to a base currency before comparing. This is documented as a known simplification.
+
 **PostgreSQL as rebuildable read model**
 
 PostgreSQL holds no state that cannot be reconstructed by replaying Kafka from offset 0. The `POST /admin/rebuild` endpoint demonstrates this: it drops all read-model rows, then replays the full event log. Kafka is the source of truth; PostgreSQL is a queryable cache. The one exception is account creation: `createAccount` writes directly to PostgreSQL before publishing the event, so the row exists immediately on the normal path; on rebuild the `AccountCreated` event recreates it.

@@ -9,6 +9,7 @@ import dev.simd.ledgeflow.metrics.LedgeFlowMetrics;
 import dev.simd.ledgeflow.model.Account;
 import dev.simd.ledgeflow.repository.AccountRepository;
 import dev.simd.ledgeflow.repository.TransactionRepository;
+import dev.simd.ledgeflow.repository.UserRepository;
 import dev.simd.ledgeflow.service.AccountService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -31,6 +32,7 @@ class AccountServiceTest {
 
     @Mock AccountRepository accountRepository;
     @Mock TransactionRepository transactionRepository;
+    @Mock UserRepository userRepository;
     @Mock KafkaEventPublisher kafkaEventPublisher;
     @Mock LedgeFlowMetrics metrics;
 
@@ -38,7 +40,8 @@ class AccountServiceTest {
 
     @BeforeEach
     void setUp() {
-        accountService = new AccountService(accountRepository, transactionRepository, kafkaEventPublisher, metrics);
+        accountService = new AccountService(accountRepository, transactionRepository,
+                userRepository, kafkaEventPublisher, metrics);
     }
 
     // --- deposit ---
@@ -60,7 +63,7 @@ class AccountServiceTest {
     @Test
     void deposit_throwsInvalidRequest_whenCurrencyMismatch() {
         UUID id = UUID.randomUUID();
-        when(accountRepository.findById(id)).thenReturn(Optional.of(accountWithBalance(id, "0.00"))); // EUR account
+        when(accountRepository.findById(id)).thenReturn(Optional.of(accountWithBalance(id, "0.00")));
 
         assertThatThrownBy(() -> accountService.deposit(id, new BigDecimal("50"), "USD"))
                 .isInstanceOf(InvalidRequestException.class);
@@ -99,7 +102,7 @@ class AccountServiceTest {
     @Test
     void withdraw_throwsInvalidRequest_whenCurrencyMismatch() {
         UUID id = UUID.randomUUID();
-        when(accountRepository.findById(id)).thenReturn(Optional.of(accountWithBalance(id, "100.00"))); // EUR account
+        when(accountRepository.findById(id)).thenReturn(Optional.of(accountWithBalance(id, "100.00")));
 
         assertThatThrownBy(() -> accountService.withdraw(id, new BigDecimal("50"), "USD"))
                 .isInstanceOf(InvalidRequestException.class);
@@ -139,18 +142,6 @@ class AccountServiceTest {
     // --- transfer ---
 
     @Test
-    void transfer_throwsInvalidRequest_whenCurrencyMismatchOnSource() {
-        UUID from = UUID.randomUUID();
-        UUID to = UUID.randomUUID();
-        when(accountRepository.findById(from)).thenReturn(Optional.of(accountWithBalance(from, "200.00"))); // EUR
-        when(accountRepository.findById(to)).thenReturn(Optional.of(accountWithBalance(to, "0.00")));   // EUR
-
-        assertThatThrownBy(() -> accountService.transfer(from, to, new BigDecimal("50"), "USD"))
-                .isInstanceOf(InvalidRequestException.class);
-        verifyNoInteractions(kafkaEventPublisher);
-    }
-
-    @Test
     void transfer_throwsInvalidRequest_whenAmountIsZero() {
         assertThatThrownBy(() ->
                 accountService.transfer(UUID.randomUUID(), UUID.randomUUID(), BigDecimal.ZERO, "EUR"))
@@ -163,6 +154,18 @@ class AccountServiceTest {
         UUID id = UUID.randomUUID();
         assertThatThrownBy(() ->
                 accountService.transfer(id, id, new BigDecimal("50"), "EUR"))
+                .isInstanceOf(InvalidRequestException.class);
+        verifyNoInteractions(kafkaEventPublisher);
+    }
+
+    @Test
+    void transfer_throwsInvalidRequest_whenCurrencyMismatchOnSource() {
+        UUID from = UUID.randomUUID();
+        UUID to = UUID.randomUUID();
+        when(accountRepository.findById(from)).thenReturn(Optional.of(accountWithBalance(from, "200.00")));
+        when(accountRepository.findById(to)).thenReturn(Optional.of(accountWithBalance(to, "0.00")));
+
+        assertThatThrownBy(() -> accountService.transfer(from, to, new BigDecimal("50"), "USD"))
                 .isInstanceOf(InvalidRequestException.class);
         verifyNoInteractions(kafkaEventPublisher);
     }

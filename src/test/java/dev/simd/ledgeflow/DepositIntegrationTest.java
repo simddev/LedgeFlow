@@ -3,16 +3,20 @@ package dev.simd.ledgeflow;
 import dev.simd.ledgeflow.event.AccountEvent;
 import dev.simd.ledgeflow.kafka.KafkaEventPublisher;
 import dev.simd.ledgeflow.model.Account;
+import dev.simd.ledgeflow.model.User;
 import dev.simd.ledgeflow.repository.AccountRepository;
+import dev.simd.ledgeflow.repository.UserRepository;
 import dev.simd.ledgeflow.service.AccountService;
 import dev.simd.ledgeflow.service.AdminService;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.flywaydb.core.Flyway;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -23,6 +27,8 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
 import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -61,7 +67,8 @@ class DepositIntegrationTest {
                 Map.of(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, kafka.getBootstrapServers()))) {
             admin.createTopics(List.of(
                     new NewTopic("account.events", 1, (short) 1),
-                    new NewTopic("account.alerts", 1, (short) 1)
+                    new NewTopic("account.alerts", 1, (short) 1),
+                    new NewTopic("account.events.DLT", 1, (short) 1)
             )).all().get(10, TimeUnit.SECONDS);
         } catch (Exception e) {
             throw new RuntimeException("Failed to create Kafka topics", e);
@@ -75,14 +82,34 @@ class DepositIntegrationTest {
     private AccountRepository accountRepository;
 
     @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
+    @Autowired
     private KafkaEventPublisher kafkaEventPublisher;
 
     @Autowired
     private AdminService adminService;
 
+    private UUID testOwnerId;
+
+    @BeforeEach
+    void setUp() {
+        User owner = new User();
+        owner.setId(UUID.randomUUID());
+        owner.setUsername("testuser-" + UUID.randomUUID());
+        owner.setPassword(passwordEncoder.encode("password"));
+        owner.setRole("USER");
+        owner.setCreatedAt(LocalDateTime.now());
+        userRepository.save(owner);
+        testOwnerId = owner.getId();
+    }
+
     @Test
     void deposit_updatesBalance_inReadModel() {
-        Account account = accountService.createAccount(UUID.randomUUID(), "EUR");
+        Account account = accountService.createAccount(testOwnerId, "EUR");
         accountService.deposit(account.getId(), new BigDecimal("100.00"), "EUR");
 
         await().atMost(15, SECONDS).untilAsserted(() -> {
@@ -93,7 +120,7 @@ class DepositIntegrationTest {
 
     @Test
     void withdrawal_updatesBalance_inReadModel() {
-        Account account = accountService.createAccount(UUID.randomUUID(), "EUR");
+        Account account = accountService.createAccount(testOwnerId, "EUR");
         accountService.deposit(account.getId(), new BigDecimal("200.00"), "EUR");
 
         await().atMost(15, SECONDS).untilAsserted(() -> {
@@ -111,12 +138,12 @@ class DepositIntegrationTest {
 
     @Test
     void deposit_isIdempotent_duplicateEventIgnored() {
-        Account account = accountService.createAccount(UUID.randomUUID(), "EUR");
+        Account account = accountService.createAccount(testOwnerId, "EUR");
 
         UUID correlationId = UUID.randomUUID();
         AccountEvent event = new AccountEvent(
                 "MoneyDeposited", account.getId(), null,
-                new BigDecimal("100.00"), "EUR", correlationId, java.time.Instant.now().toString(), null);
+                new BigDecimal("100.00"), "EUR", correlationId, Instant.now().toString(), null);
 
         kafkaEventPublisher.publish(account.getId().toString(), event);
         await().atMost(15, SECONDS).untilAsserted(() -> {
@@ -134,7 +161,7 @@ class DepositIntegrationTest {
 
     @Test
     void rebuild_restoresReadModel_fromKafkaEventLog() {
-        Account account = accountService.createAccount(UUID.randomUUID(), "EUR");
+        Account account = accountService.createAccount(testOwnerId, "EUR");
         accountService.deposit(account.getId(), new BigDecimal("100.00"), "EUR");
 
         await().atMost(15, SECONDS).untilAsserted(() -> {
@@ -150,7 +177,7 @@ class DepositIntegrationTest {
 
     @Test
     void transfer_updatesBalances_inReadModel() {
-        Account source = accountService.createAccount(UUID.randomUUID(), "EUR");
+        Account source = accountService.createAccount(testOwnerId, "EUR");
         accountService.deposit(source.getId(), new BigDecimal("300.00"), "EUR");
 
         await().atMost(15, SECONDS).untilAsserted(() -> {
@@ -158,7 +185,7 @@ class DepositIntegrationTest {
             assertThat(updated.getBalance()).isEqualByComparingTo("300.00");
         });
 
-        Account destination = accountService.createAccount(UUID.randomUUID(), "EUR");
+        Account destination = accountService.createAccount(testOwnerId, "EUR");
 
         accountService.transfer(source.getId(), destination.getId(), new BigDecimal("75.00"), "EUR");
 

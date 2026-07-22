@@ -33,27 +33,13 @@ public class JwtService {
                 .compact();
     }
 
-    public String extractUsername(String token) {
-        return extractClaims(token).getSubject();
-    }
-
-    public String extractRole(String token) {
-        return (String) extractClaims(token).get("role");
-    }
-
     /**
-     * Validates signature (via {@code extractClaims}), expiry, and subject match.
+     * Parses and cryptographically verifies the token once, returning all claims.
+     * Callers should extract subject, role, and expiry from the returned {@link Claims}
+     * rather than calling individual extract methods, to avoid re-parsing.
      * Does not check revocation; tokens remain valid until expiry by design.
      */
-    public boolean isTokenValid(String token, String username) {
-        return extractUsername(token).equals(username) && !isTokenExpired(token);
-    }
-
-    private boolean isTokenExpired(String token) {
-        return extractClaims(token).getExpiration().before(new Date());
-    }
-
-    private Claims extractClaims(String token) {
+    public Claims extractClaims(String token) {
         return Jwts.parser()
                 .verifyWith(signingKey)
                 .build()

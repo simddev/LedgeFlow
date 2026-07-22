@@ -35,13 +35,14 @@ public class BalanceTopology {
 
     private static final Logger log = LoggerFactory.getLogger(BalanceTopology.class);
 
-    @Value("${spring.kafka.bootstrap-servers}")
-    private String bootstrapServers;
-
+    private final String bootstrapServers;
     private final ObjectMapper objectMapper;
     private final LedgeFlowMetrics metrics;
 
-    public BalanceTopology(ObjectMapper objectMapper, LedgeFlowMetrics metrics) {
+    public BalanceTopology(@Value("${spring.kafka.bootstrap-servers}") String bootstrapServers,
+                           ObjectMapper objectMapper,
+                           LedgeFlowMetrics metrics) {
+        this.bootstrapServers = bootstrapServers;
         this.objectMapper = objectMapper;
         this.metrics = metrics;
     }

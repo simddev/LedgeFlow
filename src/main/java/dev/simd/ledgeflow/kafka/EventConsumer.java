@@ -9,16 +9,21 @@ import dev.simd.ledgeflow.model.Transaction;
 import dev.simd.ledgeflow.repository.AccountRepository;
 import dev.simd.ledgeflow.repository.ProcessedEventRepository;
 import dev.simd.ledgeflow.repository.TransactionRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.UUID;
 
 @Component
 public class EventConsumer {
+
+    private static final Logger log = LoggerFactory.getLogger(EventConsumer.class);
 
     private final AccountRepository accountRepository;
     private final TransactionRepository transactionRepository;
@@ -50,6 +55,10 @@ public class EventConsumer {
             throw new RuntimeException("Failed to deserialize event", e);
         }
 
+        if (event.getCorrelationId() == null) {
+            throw new RuntimeException("Event of type '" + event.getType() + "' is missing correlationId");
+        }
+
         if (processedEventRepository.existsById(event.getCorrelationId())) {
             return;
         }
@@ -59,13 +68,17 @@ public class EventConsumer {
             case "MoneyDeposited"    -> { processDeposit(event);    yield true; }
             case "MoneyWithdrawn"    -> { processWithdrawal(event); yield true; }
             case "TransferCompleted" -> { processTransfer(event);   yield true; }
-            default                  -> false;
+            default -> {
+                log.warn("Unrecognised event type '{}' for account {}, skipping",
+                        event.getType(), event.getAccountId());
+                yield false;
+            }
         };
 
         if (handled) {
             ProcessedEvent processed = new ProcessedEvent();
             processed.setCorrelationId(event.getCorrelationId());
-            processed.setProcessedAt(LocalDateTime.now());
+            processed.setProcessedAt(LocalDateTime.now(ZoneOffset.UTC));
             processedEventRepository.save(processed);
         }
     }
@@ -81,15 +94,15 @@ public class EventConsumer {
         account.setOwnerId(event.getOwnerId());
         account.setCurrency(event.getCurrency());
         account.setBalance(BigDecimal.ZERO);
-        account.setCreatedAt(LocalDateTime.now());
-        account.setUpdatedAt(LocalDateTime.now());
+        account.setCreatedAt(LocalDateTime.now(ZoneOffset.UTC));
+        account.setUpdatedAt(LocalDateTime.now(ZoneOffset.UTC));
         accountRepository.save(account);
     }
 
     private void processDeposit(AccountEvent event) {
         Account account = getAccount(event.getAccountId());
         account.setBalance(account.getBalance().add(event.getAmount()));
-        account.setUpdatedAt(LocalDateTime.now());
+        account.setUpdatedAt(LocalDateTime.now(ZoneOffset.UTC));
         accountRepository.save(account);
         insertTransaction(event.getAccountId(), "DEPOSIT", event.getAmount(), account.getBalance(), event.getCorrelationId());
     }
@@ -97,7 +110,7 @@ public class EventConsumer {
     private void processWithdrawal(AccountEvent event) {
         Account account = getAccount(event.getAccountId());
         account.setBalance(account.getBalance().subtract(event.getAmount()));
-        account.setUpdatedAt(LocalDateTime.now());
+        account.setUpdatedAt(LocalDateTime.now(ZoneOffset.UTC));
         accountRepository.save(account);
         insertTransaction(event.getAccountId(), "WITHDRAWAL", event.getAmount(), account.getBalance(), event.getCorrelationId());
     }
@@ -105,13 +118,13 @@ public class EventConsumer {
     private void processTransfer(AccountEvent event) {
         Account source = getAccount(event.getAccountId());
         source.setBalance(source.getBalance().subtract(event.getAmount()));
-        source.setUpdatedAt(LocalDateTime.now());
+        source.setUpdatedAt(LocalDateTime.now(ZoneOffset.UTC));
         accountRepository.save(source);
         insertTransaction(event.getAccountId(), "TRANSFER_OUT", event.getAmount(), source.getBalance(), event.getCorrelationId());
 
         Account destination = getAccount(event.getToAccountId());
         destination.setBalance(destination.getBalance().add(event.getAmount()));
-        destination.setUpdatedAt(LocalDateTime.now());
+        destination.setUpdatedAt(LocalDateTime.now(ZoneOffset.UTC));
         accountRepository.save(destination);
         insertTransaction(event.getToAccountId(), "TRANSFER_IN", event.getAmount(), destination.getBalance(), event.getCorrelationId());
     }
@@ -131,7 +144,7 @@ public class EventConsumer {
         transaction.setAmount(amount);
         transaction.setBalanceAfter(balanceAfter);
         transaction.setCorrelationId(correlationId);
-        transaction.setOccurredAt(LocalDateTime.now());
+        transaction.setOccurredAt(LocalDateTime.now(ZoneOffset.UTC));
         transactionRepository.save(transaction);
     }
 }

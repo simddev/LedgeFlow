@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.UUID;
 
 /**
@@ -60,8 +61,8 @@ public class AccountService {
         account.setOwnerId(ownerId);
         account.setCurrency(currency);
         account.setBalance(BigDecimal.ZERO);
-        account.setCreatedAt(LocalDateTime.now());
-        account.setUpdatedAt(LocalDateTime.now());
+        account.setCreatedAt(LocalDateTime.now(ZoneOffset.UTC));
+        account.setUpdatedAt(LocalDateTime.now(ZoneOffset.UTC));
         Account saved = accountRepository.save(account);
         kafkaEventPublisher.publish(saved.getId().toString(),
                 new AccountEvent("AccountCreated", saved.getId(), null, BigDecimal.ZERO, currency,
@@ -99,7 +100,7 @@ public class AccountService {
         if (account.getBalance().compareTo(amount) < 0) {
             throw new InsufficientFundsException();
         }
-        account.setUpdatedAt(LocalDateTime.now());
+        account.setUpdatedAt(LocalDateTime.now(ZoneOffset.UTC));
         accountRepository.save(account);
         AccountEvent event = new AccountEvent(
                 "MoneyWithdrawn", accountId, null, amount, currency,
@@ -129,7 +130,7 @@ public class AccountService {
         if (source.getBalance().compareTo(amount) < 0) {
             throw new InsufficientFundsException();
         }
-        source.setUpdatedAt(LocalDateTime.now());
+        source.setUpdatedAt(LocalDateTime.now(ZoneOffset.UTC));
         accountRepository.save(source);
         UUID correlationId = UUID.randomUUID();
         kafkaEventPublisher.publish(fromAccountId.toString(),
@@ -144,6 +145,7 @@ public class AccountService {
     }
 
     public Page<Transaction> getAccountHistory(UUID id, Pageable pageable) {
+        getAccount(id);
         return transactionRepository.findByAccountId(id, pageable);
     }
 

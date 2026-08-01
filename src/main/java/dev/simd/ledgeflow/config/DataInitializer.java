@@ -11,6 +11,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.UUID;
 
 @Component
@@ -40,7 +41,7 @@ public class DataInitializer implements ApplicationRunner {
             admin.setUsername("admin");
             admin.setPassword(passwordEncoder.encode(adminPassword));
             admin.setRole("ADMIN");
-            admin.setCreatedAt(LocalDateTime.now());
+            admin.setCreatedAt(LocalDateTime.now(ZoneOffset.UTC));
             userRepository.save(admin);
         }
     }

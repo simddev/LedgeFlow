@@ -8,6 +8,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.UUID;
 
 @Service
@@ -32,7 +33,7 @@ public class AuthService {
         user.setUsername(username);
         user.setPassword(passwordEncoder.encode(password));
         user.setRole("USER");
-        user.setCreatedAt(LocalDateTime.now());
+        user.setCreatedAt(LocalDateTime.now(ZoneOffset.UTC));
         userRepository.save(user);
         return jwtService.generateToken(username, user.getRole());
     }

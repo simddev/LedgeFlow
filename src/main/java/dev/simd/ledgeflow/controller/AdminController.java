@@ -2,6 +2,7 @@ package dev.simd.ledgeflow.controller;
 
 import dev.simd.ledgeflow.service.AdminService;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -19,6 +20,7 @@ public class AdminController {
 
     @PostMapping("/rebuild")
     @ResponseStatus(HttpStatus.OK)
+    @PreAuthorize("hasRole('ADMIN')")
     public void rebuild() {
         adminService.rebuild();
     }

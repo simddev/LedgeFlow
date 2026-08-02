@@ -53,6 +53,10 @@ public class AccountController {
     record AmountRequest(@NotNull @Positive @Digits(integer = 15, fraction = 4) BigDecimal amount,
                          @NotBlank @Pattern(regexp = "[A-Z]{3}") String currency) {}
 
+    record TransferRequest(@NotNull UUID toAccountId,
+                           @NotNull @Positive @Digits(integer = 15, fraction = 4) BigDecimal amount,
+                           @NotBlank @Pattern(regexp = "[A-Z]{3}") String currency) {}
+
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public AccountResponse createAccount(@Valid @RequestBody CreateAccountRequest request) {
@@ -81,5 +85,11 @@ public class AccountController {
     @ResponseStatus(HttpStatus.ACCEPTED)
     public void withdraw(@PathVariable UUID id, @Valid @RequestBody AmountRequest request) {
         accountService.withdraw(id, request.amount(), request.currency());
+    }
+
+    @PostMapping("/{id}/transfer")
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    public void transfer(@PathVariable UUID id, @Valid @RequestBody TransferRequest request) {
+        accountService.transfer(id, request.toAccountId(), request.amount(), request.currency());
     }
 }

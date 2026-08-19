@@ -7,6 +7,7 @@ import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import dev.simd.ledgeflow.kafka.KafkaEventPublisher;
 import dev.simd.ledgeflow.metrics.LedgeFlowMetrics;
 import dev.simd.ledgeflow.model.Account;
+import dev.simd.ledgeflow.model.User;
 import dev.simd.ledgeflow.repository.AccountRepository;
 import dev.simd.ledgeflow.repository.TransactionRepository;
 import dev.simd.ledgeflow.repository.UserRepository;
@@ -16,12 +17,14 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.access.AccessDeniedException;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
 
+import static org.assertj.core.api.Assertions.assertThatNoException;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -239,6 +242,47 @@ class AccountServiceTest {
 
         assertThatThrownBy(() -> accountService.transfer(from, to, new BigDecimal("50.00"), "EUR"))
                 .isInstanceOf(ObjectOptimisticLockingFailureException.class);
+    }
+
+    // --- assertOwner ---
+
+    @Test
+    void assertOwner_throwsAccessDenied_whenCallerDoesNotOwnAccount() {
+        UUID accountId = UUID.randomUUID();
+        UUID realOwnerId = UUID.randomUUID();
+        Account account = new Account(accountId, realOwnerId, "EUR", BigDecimal.ZERO,
+                LocalDateTime.now(), LocalDateTime.now(), null);
+        User caller = new User(UUID.randomUUID(), "alice", "pw", "USER", LocalDateTime.now());
+        when(accountRepository.findById(accountId)).thenReturn(Optional.of(account));
+        when(userRepository.findByUsername("alice")).thenReturn(Optional.of(caller));
+
+        assertThatThrownBy(() -> accountService.assertOwner(accountId, "alice"))
+                .isInstanceOf(AccessDeniedException.class);
+    }
+
+    @Test
+    void assertOwner_succeeds_whenCallerOwnsAccount() {
+        UUID accountId = UUID.randomUUID();
+        UUID ownerId = UUID.randomUUID();
+        Account account = new Account(accountId, ownerId, "EUR", BigDecimal.ZERO,
+                LocalDateTime.now(), LocalDateTime.now(), null);
+        User caller = new User(ownerId, "alice", "pw", "USER", LocalDateTime.now());
+        when(accountRepository.findById(accountId)).thenReturn(Optional.of(account));
+        when(userRepository.findByUsername("alice")).thenReturn(Optional.of(caller));
+
+        assertThatNoException().isThrownBy(() -> accountService.assertOwner(accountId, "alice"));
+    }
+
+    @Test
+    void assertOwner_throwsAccessDenied_whenUsernameNotFound() {
+        UUID accountId = UUID.randomUUID();
+        Account account = new Account(accountId, UUID.randomUUID(), "EUR", BigDecimal.ZERO,
+                LocalDateTime.now(), LocalDateTime.now(), null);
+        when(accountRepository.findById(accountId)).thenReturn(Optional.of(account));
+        when(userRepository.findByUsername("ghost")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> accountService.assertOwner(accountId, "ghost"))
+                .isInstanceOf(AccessDeniedException.class);
     }
 
     // --- helpers ---

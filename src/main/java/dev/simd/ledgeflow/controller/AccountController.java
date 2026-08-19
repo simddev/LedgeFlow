@@ -16,6 +16,8 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.security.core.Authentication;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -89,7 +91,10 @@ public class AccountController {
 
     @PostMapping("/{id}/transfer")
     @ResponseStatus(HttpStatus.ACCEPTED)
-    public void transfer(@PathVariable UUID id, @Valid @RequestBody TransferRequest request) {
+    public void transfer(@PathVariable UUID id,
+                         @Valid @RequestBody TransferRequest request,
+                         Authentication authentication) {
+        accountService.assertOwner(id, authentication.getName());
         accountService.transfer(id, request.toAccountId(), request.amount(), request.currency());
     }
 }

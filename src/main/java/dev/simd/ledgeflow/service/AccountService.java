@@ -13,6 +13,7 @@ import dev.simd.ledgeflow.repository.TransactionRepository;
 import dev.simd.ledgeflow.repository.UserRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -147,6 +148,16 @@ public class AccountService {
     public Page<Transaction> getAccountHistory(UUID id, Pageable pageable) {
         getAccount(id);
         return transactionRepository.findByAccountId(id, pageable);
+    }
+
+    public void assertOwner(UUID accountId, String callerUsername) {
+        Account account = getAccount(accountId);
+        boolean isOwner = userRepository.findByUsername(callerUsername)
+                .map(u -> u.getId().equals(account.getOwnerId()))
+                .orElse(false);
+        if (!isOwner) {
+            throw new AccessDeniedException("Account does not belong to the caller");
+        }
     }
 
     private void validateCurrency(Account account, String currency) {

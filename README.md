@@ -57,6 +57,8 @@ To run the test suite (requires Docker for Testcontainers):
 
 Grafana credentials: `admin` / `admin`. The LedgeFlow dashboard loads automatically.
 
+![LedgeFlow Grafana dashboard showing transaction rate, amount percentiles, anomaly alerts and JVM metrics](docs/grafana-dashboard.png)
+
 ### Quick API walkthrough
 
 ```bash

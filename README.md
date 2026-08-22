@@ -124,7 +124,7 @@ curl -s -X POST http://localhost:8080/admin/rebuild \
 
 The write path (`deposit`, `withdraw`, `transfer`) reads the current balance from the PostgreSQL read model, validates it in memory, then publishes an event to Kafka. The Kafka Streams KTable is the authoritative balance, but it is not queried on the write path.
 
-This creates a TOCTOU race whose exploitable window is the entire produce-to-projection latency (the time between publishing an event and the consumer committing the resulting balance update to PostgreSQL), typically tens to hundreds of milliseconds. Within that window, any number of requests fired sequentially — not just concurrently — can all pass the same stale balance check and publish events, driving the account arbitrarily negative without requiring two requests to overlap in time.
+This creates a TOCTOU race whose exploitable window is the entire produce-to-projection latency (the time between publishing an event and the consumer committing the resulting balance update to PostgreSQL), typically tens to hundreds of milliseconds. Within that window, any number of requests fired sequentially, not just concurrently, can all pass the same stale balance check and publish events, driving the account arbitrarily negative without requiring two requests to overlap in time.
 
 `withdraw()` and `transfer()` include a partial mitigation: they bump the `@Version` column on the account row before publishing, so two truly concurrent requests (arriving at the same instant) serialise at the database commit; the second writer receives HTTP 409 and can retry. This does not close the sequential window described above. Full prevention requires atomic command-write and event-publication, which needs either an outbox pattern or Kafka transactions.
 
